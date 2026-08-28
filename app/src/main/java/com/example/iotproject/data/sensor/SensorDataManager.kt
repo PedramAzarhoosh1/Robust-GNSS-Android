@@ -48,12 +48,10 @@ class SensorDataManager(context: Context) : SensorEventListener {
     @Volatile
     private var recentStepCount = 0
 
-    // Low-pass filter for gravity separation when linear acceleration sensor isn't hardware present
     private val gravity = FloatArray(3)
     private val rotationMatrix = FloatArray(9)
     private val orientationAngles = FloatArray(3)
 
-    // Sliding window of recent acceleration magnitudes to compute standard deviation/motion energy
     private val recentAccelMagnitudes = ConcurrentLinkedQueue<Float>()
     private val maxWindowSize = 50
 

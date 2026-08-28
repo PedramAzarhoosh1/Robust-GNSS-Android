@@ -7,7 +7,7 @@ data class LocationData(
     val accuracy: Float,
     val speed: Float, // in m/s
     val bearing: Float, // in degrees
-    val timestamp: Long, // Unix timestamp in ms
+    val timestamp: Long,
     val elapsedRealtimeNanos: Long,
     val provider: String,
     val satellitesTotal: Int = 0,

@@ -37,7 +37,6 @@ fun DashboardScreen(viewModel: MainViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     var showLogsDialog by remember { mutableStateOf(false) }
 
-    // Required permissions
     val permissionsToRequest = remember {
         val list = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
