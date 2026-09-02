@@ -4,8 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -14,14 +17,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.iotproject.data.model.AssessmentResult
-import com.example.iotproject.data.model.GnssConstellationSummary
-import com.example.iotproject.data.model.GnssStatusState
-import com.example.iotproject.data.model.LocationData
-import com.example.iotproject.data.model.SensorSnapshot
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import com.example.iotproject.data.model.*
+import com.example.iotproject.ui.theme.*
 import java.util.Locale
 
 @Composable
@@ -54,12 +51,21 @@ fun StatusBadge(state: GnssStatusState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun IntegrityStatusCard(assessment: AssessmentResult, modifier: Modifier = Modifier) {
+fun FaultInjectionCard(
+    currentMode: FaultInjectionMode,
+    onSelectMode: (FaultInjectionMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = assessment.state.color.copy(alpha = 0.08f)
+            containerColor = if (currentMode == FaultInjectionMode.NORMAL)
+                Slate800
+            else
+                RoseError.copy(alpha = 0.15f)
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -68,123 +74,86 @@ fun IntegrityStatusCard(assessment: AssessmentResult, modifier: Modifier = Modif
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "GNSS Integrity Status",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                StatusBadge(state = assessment.state)
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = assessment.state.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Assessment Factors:",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            assessment.reasons.forEach { reason ->
-                Row(
-                    modifier = Modifier.padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Text("• ", color = assessment.state.color, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (currentMode != FaultInjectionMode.NORMAL) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Fault Active",
+                            tint = RoseError,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
                     Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = "Fault Simulation Engine",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Slate100
                     )
+                }
+
+                Box {
+                    Button(
+                        onClick = { expanded = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (currentMode == FaultInjectionMode.NORMAL)
+                                CyanAccent
+                            else
+                                RoseError,
+                            contentColor = Slate900
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(currentMode.displayName.take(16) + if (currentMode.displayName.length > 16) "..." else "")
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        FaultInjectionMode.values().forEach { mode ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(mode.displayName, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            mode.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Slate400
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    onSelectMode(mode)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                MetricItem(label = "Satellites in Fix", value = "${assessment.satellitesInFix}")
-                MetricItem(
-                    label = "Staleness",
-                    value = if (assessment.timeSinceLastFixSec > 100) "--" else "${String.format("%.1f", assessment.timeSinceLastFixSec)}s"
-                )
-                MetricItem(
-                    label = "Jump Shift",
-                    value = if (assessment.jumpDistanceMeters > 0) "${String.format("%.1f", assessment.jumpDistanceMeters)}m" else "None"
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun LocationCard(location: LocationData?, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Location & GNSS Position",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                text = currentMode.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = Slate400
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (location == null) {
-                Text(
-                    text = "Awaiting Location Fix (GPS)...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            } else {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        MetricItem(label = "Latitude", value = String.format("%.6f°", location.latitude))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MetricItem(label = "Altitude", value = String.format("%.1f m", location.altitude))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MetricItem(label = "Speed", value = String.format("%.1f m/s (%.1f km/h)", location.speed, location.speed * 3.6f))
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        MetricItem(label = "Longitude", value = String.format("%.6f°", location.longitude))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MetricItem(label = "Accuracy", value = String.format("±%.1f m", location.accuracy))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MetricItem(label = "Bearing", value = String.format("%.1f°", location.bearing))
-                    }
-                }
-            }
         }
     }
 }
 
 @Composable
-fun SensorCard(sensors: SensorSnapshot, modifier: Modifier = Modifier) {
+fun PdrPositionComparisonCard(
+    groundTruth: LocationData?,
+    pdrState: PdrState,
+    onResetPdr: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Slate800)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -193,20 +162,42 @@ fun SensorCard(sensors: SensorSnapshot, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "IMU & Motion Sensors",
+                    text = "PDR & Ground Truth Trajectory",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Slate100
                 )
-                Surface(
-                    color = if (sensors.isDeviceStationary) Color(0xFF1976D2).copy(alpha = 0.15f) else Color(0xFF388E3C).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(12.dp)
+
+                IconButton(onClick = onResetPdr, modifier = Modifier.size(32.dp)) {
+                    Icon(imageVector = Icons.Default.RestartAlt, contentDescription = "Reset PDR", tint = CyanAccent)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Surface(
+                color = if (pdrState.estimationErrorMeters > 30f) RoseError.copy(alpha = 0.15f)
+                else EmeraldGreen.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (sensors.isDeviceStationary) "STATIONARY" else "MOVING",
-                        color = if (sensors.isDeviceStationary) Color(0xFF1976D2) else Color(0xFF388E3C),
+                        text = "Estimation Error (PDR vs Truth):",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Slate200
+                    )
+                    Text(
+                        text = String.format("%.2f meters", pdrState.estimationErrorMeters),
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        fontFamily = FontFamily.Monospace,
+                        color = if (pdrState.estimationErrorMeters > 30f) RoseError else EmeraldGreen
                     )
                 }
             }
@@ -215,103 +206,54 @@ fun SensorCard(sensors: SensorSnapshot, modifier: Modifier = Modifier) {
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    MetricItem(
-                        label = "Accelerometer (m/s²)",
-                        value = "x:${String.format("%.1f", sensors.accelerometer.x)} y:${String.format("%.1f", sensors.accelerometer.y)} z:${String.format("%.1f", sensors.accelerometer.z)}"
+                    Text(
+                        text = "Ground Truth (GPS)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TealAccent
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    MetricItem(
-                        label = "Gyroscope (rad/s)",
-                        value = "x:${String.format("%.2f", sensors.gyroscope.x)} y:${String.format("%.2f", sensors.gyroscope.y)} z:${String.format("%.2f", sensors.gyroscope.z)}"
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    MetricItem(
-                        label = "Total Steps",
-                        value = "${sensors.steps.totalSteps}"
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (groundTruth == null) {
+                        Text("Awaiting GPS fix...", style = MaterialTheme.typography.bodySmall, color = Slate400)
+                    } else {
+                        MetricItem(label = "Lat", value = String.format("%.6f°", groundTruth.latitude))
+                        MetricItem(label = "Lon", value = String.format("%.6f°", groundTruth.longitude))
+                        MetricItem(label = "Speed", value = String.format("%.1f m/s", groundTruth.speed))
+                        MetricItem(label = "Accuracy", value = String.format("±%.1f m", groundTruth.accuracy))
+                    }
                 }
+
                 Column(modifier = Modifier.weight(1f)) {
-                    MetricItem(
-                        label = "Linear Accel Dynamic",
-                        value = "${String.format("%.2f", sensors.dynamicAccelMagnitude)} m/s²"
+                    Text(
+                        text = "Estimated (PDR)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = CoralOrange
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    MetricItem(
-                        label = "Heading (Azimuth)",
-                        value = "${String.format("%.1f°", sensors.rotation.azimuthDegrees)}"
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    MetricItem(
-                        label = "Magnetometer (µT)",
-                        value = "${String.format("%.1f", sensors.magnetometer.magnitude)} µT"
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (pdrState.estimatedLatitude == 0.0) {
+                        Text("Syncing initial coordinate...", style = MaterialTheme.typography.bodySmall, color = Slate400)
+                    } else {
+                        MetricItem(label = "Est Lat", value = String.format("%.6f°", pdrState.estimatedLatitude))
+                        MetricItem(label = "Est Lon", value = String.format("%.6f°", pdrState.estimatedLongitude))
+                        MetricItem(label = "Steps", value = "${pdrState.totalSteps} steps")
+                        MetricItem(label = "Distance", value = String.format("%.1f m", pdrState.totalDistanceMeters))
+                    }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConstellationCard(summary: GnssConstellationSummary, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "GNSS Constellations & Satellites",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                MetricItem(label = "Total Satellites", value = "${summary.totalSatellites}")
-                MetricItem(label = "Used in Fix", value = "${summary.usedInFixCount}")
-                MetricItem(label = "Avg C/N0", value = "${String.format("%.1f", summary.avgCn0)} dB-Hz")
             }
 
             Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = Slate700)
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                ConstellationPill(name = "GPS", count = summary.gpsCount)
-                ConstellationPill(name = "GLONASS", count = summary.glonassCount)
-                ConstellationPill(name = "Galileo", count = summary.galileoCount)
-                ConstellationPill(name = "BeiDou", count = summary.beidouCount)
+                MetricItem(label = "Step Length", value = String.format("%.2f m", pdrState.stepLengthMeters))
+                MetricItem(label = "PDR Heading", value = String.format("%.1f°", pdrState.headingDegrees))
+                MetricItem(label = "Step Cadence", value = String.format("%.1f Hz", pdrState.stepFrequencyHz))
             }
-        }
-    }
-}
-
-@Composable
-fun ConstellationPill(name: String, count: Int) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "$count",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
         }
     }
 }
@@ -322,13 +264,14 @@ fun MetricItem(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Slate400
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace
+            fontFamily = FontFamily.Monospace,
+            color = Slate100
         )
     }
 }

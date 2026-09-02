@@ -4,10 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.example.iotproject.data.model.AssessmentResult
-import com.example.iotproject.data.model.GnssConstellationSummary
-import com.example.iotproject.data.model.LocationData
-import com.example.iotproject.data.model.SensorSnapshot
+import com.example.iotproject.data.model.*
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -39,15 +36,16 @@ class DataLogger(private val context: Context) {
             logsDir.mkdirs()
         }
 
-        val filename = "gnss_log_${fileDateFormat.format(Date())}.csv"
+        val filename = "gnss_pdr_log_${fileDateFormat.format(Date())}.csv"
         val file = File(logsDir, filename)
         currentFile = file
         currentRecordingFile = file
         recordedSamplesCount = 0L
 
         writer = BufferedWriter(FileWriter(file, true))
-        val header = "timestamp_ms,iso_time,latitude,longitude,altitude_m,accuracy_m,speed_mps,bearing_deg," +
-                "gnss_state,accel_x,accel_y,accel_z,linear_accel_x,linear_accel_y,linear_accel_z," +
+        val header = "timestamp_ms,iso_time,gt_latitude,gt_longitude,gt_altitude,gt_accuracy,gt_speed,gt_bearing," +
+                "est_latitude,est_longitude,pdr_error_meters,pdr_steps,pdr_step_length_m,pdr_heading_deg,pdr_distance_m,is_pdr_active," +
+                "fault_mode,gnss_state,accel_x,accel_y,accel_z,linear_accel_x,linear_accel_y,linear_accel_z," +
                 "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,heading_deg,step_count,satellites_total," +
                 "satellites_used,avg_cn0,is_stationary,assessment_reasons\n"
         writer?.write(header)
@@ -59,10 +57,13 @@ class DataLogger(private val context: Context) {
 
     @Synchronized
     fun logSample(
-        location: LocationData?,
+        groundTruth: LocationData?,
+        simulatedGnss: LocationData?,
         sensors: SensorSnapshot,
         gnssSummary: GnssConstellationSummary,
-        assessment: AssessmentResult
+        assessment: AssessmentResult,
+        pdrState: PdrState,
+        faultMode: FaultInjectionMode
     ) {
         if (!isRecording || writer == null) return
 
@@ -71,16 +72,21 @@ class DataLogger(private val context: Context) {
             val isoTime = dateFormat.format(Date(now))
             val reasonsStr = assessment.reasons.joinToString(" | ").replace(",", ";")
 
-            val lat = location?.latitude ?: Double.NaN
-            val lon = location?.longitude ?: Double.NaN
-            val alt = location?.altitude ?: Double.NaN
-            val acc = location?.accuracy ?: Float.NaN
-            val speed = location?.speed ?: Float.NaN
-            val bearing = location?.bearing ?: Float.NaN
+            val gtLat = groundTruth?.latitude ?: Double.NaN
+            val gtLon = groundTruth?.longitude ?: Double.NaN
+            val gtAlt = groundTruth?.altitude ?: Double.NaN
+            val gtAcc = groundTruth?.accuracy ?: Float.NaN
+            val gtSpeed = groundTruth?.speed ?: Float.NaN
+            val gtBearing = groundTruth?.bearing ?: Float.NaN
+
+            val estLat = pdrState.estimatedLatitude
+            val estLon = pdrState.estimatedLongitude
+            val pdrError = pdrState.estimationErrorMeters
 
             val row = buildString {
-                append("$now,$isoTime,$lat,$lon,$alt,$acc,$speed,$bearing,")
-                append("${assessment.state.name},")
+                append("$now,$isoTime,$gtLat,$gtLon,$gtAlt,$gtAcc,$gtSpeed,$gtBearing,")
+                append("$estLat,$estLon,$pdrError,${pdrState.totalSteps},${pdrState.stepLengthMeters},${pdrState.headingDegrees},${pdrState.totalDistanceMeters},${pdrState.isPdrActive},")
+                append("${faultMode.name},${assessment.state.name},")
                 append("${sensors.accelerometer.x},${sensors.accelerometer.y},${sensors.accelerometer.z},")
                 append("${sensors.linearAcceleration.x},${sensors.linearAcceleration.y},${sensors.linearAcceleration.z},")
                 append("${sensors.gyroscope.x},${sensors.gyroscope.y},${sensors.gyroscope.z},")

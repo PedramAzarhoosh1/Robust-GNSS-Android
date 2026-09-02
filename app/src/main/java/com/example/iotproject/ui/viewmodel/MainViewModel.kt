@@ -6,13 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.iotproject.data.location.LocationDataManager
 import com.example.iotproject.data.logging.DataLogger
-import com.example.iotproject.data.model.AssessmentResult
-import com.example.iotproject.data.model.GnssConstellationSummary
-import com.example.iotproject.data.model.GnssStatusState
-import com.example.iotproject.data.model.LocationData
-import com.example.iotproject.data.model.SensorSnapshot
+import com.example.iotproject.data.model.*
 import com.example.iotproject.data.sensor.SensorDataManager
-import com.example.iotproject.domain.assessment.GnssIntegrityEvaluator
+import com.example.iotproject.domain.fusion.PositionEstimator
 import com.example.iotproject.service.TrackingService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,7 +21,12 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 data class MainUiState(
-    val location: LocationData? = null,
+    val groundTruthLocation: LocationData? = null,
+    val simulatedGnssLocation: LocationData? = null,
+    val pdrState: PdrState = PdrState(),
+    val groundTruthHistory: List<TrajectoryPoint> = emptyList(),
+    val pdrHistory: List<TrajectoryPoint> = emptyList(),
+    val faultMode: FaultInjectionMode = FaultInjectionMode.NORMAL,
     val sensors: SensorSnapshot = SensorSnapshot(),
     val gnssSummary: GnssConstellationSummary = GnssConstellationSummary(),
     val assessment: AssessmentResult = AssessmentResult(),
@@ -36,7 +37,8 @@ data class MainUiState(
     val logFiles: List<File> = emptyList(),
     val hasLocationPermission: Boolean = false,
     val hasSensorPermission: Boolean = false,
-    val recentAssessments: List<AssessmentResult> = emptyList()
+    val recentAssessments: List<AssessmentResult> = emptyList(),
+    val selectedTab: Int = 0
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -44,7 +46,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
     private val sensorDataManager = SensorDataManager(context)
     private val locationDataManager = LocationDataManager(context)
-    private val integrityEvaluator = GnssIntegrityEvaluator()
+    private val positionEstimator = PositionEstimator()
     private val dataLogger = DataLogger(context)
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -59,14 +61,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             sensorDataManager.sensorSnapshot.collect { sensors ->
                 _uiState.update { it.copy(sensors = sensors) }
+                // Feed high-rate sensors directly to PDR
+                positionEstimator.pdrEngine.processSensorSnapshot(sensors)
+                updatePdrSnapshot()
             }
         }
 
-        // Collect location updates
+        // Collect ground truth location updates
         viewModelScope.launch {
             locationDataManager.currentLocation.collect { loc ->
-                _uiState.update { it.copy(location = loc) }
-                performEvaluation()
+                if (loc != null) {
+                    val pt = TrajectoryPoint(latitude = loc.latitude, longitude = loc.longitude, timestampMs = loc.timestamp, isPdr = false)
+                    val updatedGtHistory = (_uiState.value.groundTruthHistory + pt).takeLast(200)
+                    _uiState.update { it.copy(groundTruthLocation = loc, groundTruthHistory = updatedGtHistory) }
+                } else {
+                    _uiState.update { it.copy(groundTruthLocation = null) }
+                }
+                performFusionCycle()
             }
         }
 
@@ -74,11 +85,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             locationDataManager.gnssSummary.collect { summary ->
                 _uiState.update { it.copy(gnssSummary = summary) }
-                performEvaluation()
+                performFusionCycle()
             }
         }
 
         refreshLogFiles()
+    }
+
+    fun setSelectedTab(index: Int) {
+        _uiState.update { it.copy(selectedTab = index) }
     }
 
     fun onPermissionsGranted(locationGranted: Boolean, sensorGranted: Boolean) {
@@ -91,6 +106,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (locationGranted) {
             startTracking()
         }
+    }
+
+    fun setFaultMode(mode: FaultInjectionMode) {
+        positionEstimator.setFaultMode(mode)
+        _uiState.update { it.copy(faultMode = mode) }
+        performFusionCycle()
+    }
+
+    fun resetPdr() {
+        val currentLoc = _uiState.value.groundTruthLocation
+        positionEstimator.pdrEngine.reset(
+            initialLat = currentLoc?.latitude ?: 0.0,
+            initialLon = currentLoc?.longitude ?: 0.0
+        )
+        val initialHistory = if (currentLoc != null) {
+            listOf(TrajectoryPoint(currentLoc.latitude, currentLoc.longitude, isPdr = false))
+        } else emptyList()
+
+        _uiState.update {
+            it.copy(
+                groundTruthHistory = initialHistory,
+                pdrHistory = initialHistory
+            )
+        }
+        updatePdrSnapshot()
+    }
+
+    fun setCustomStepLength(lengthMeters: Float) {
+        positionEstimator.pdrEngine.stepLengthEstimator.setKCoefficient(lengthMeters / 1.6f)
     }
 
     fun startTracking() {
@@ -115,26 +159,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         evaluationLoopJob?.cancel()
         evaluationLoopJob = viewModelScope.launch {
             while (isActive) {
-                performEvaluation()
-                delay(500) // Periodic assessment to catch timeout & staleness
+                performFusionCycle()
+                delay(400) // Continuous fusion & timeout assessment cycle
             }
         }
     }
 
-    private fun performEvaluation() {
+    private fun performFusionCycle() {
         val currentState = _uiState.value
-        val assessment = integrityEvaluator.evaluate(
-            currentLocation = currentState.location,
-            sensorSnapshot = currentState.sensors,
+        val fusionOutput = positionEstimator.processFrame(
+            rawGroundTruthLocation = currentState.groundTruthLocation,
+            sensors = currentState.sensors,
             gnssSummary = currentState.gnssSummary,
             currentTimeMs = System.currentTimeMillis()
         )
 
-        val updatedRecent = (listOf(assessment) + currentState.recentAssessments).take(20)
+        val updatedRecent = (listOf(fusionOutput.assessment) + currentState.recentAssessments).take(20)
 
         _uiState.update {
             it.copy(
-                assessment = assessment,
+                simulatedGnssLocation = fusionOutput.simulatedGnssLocation,
+                assessment = fusionOutput.assessment,
+                pdrState = fusionOutput.pdrState,
+                faultMode = fusionOutput.faultMode,
                 recentAssessments = updatedRecent,
                 recordedSamplesCount = dataLogger.recordedSamplesCount
             )
@@ -142,10 +189,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         if (dataLogger.isRecording) {
             dataLogger.logSample(
-                location = currentState.location,
+                groundTruth = currentState.groundTruthLocation,
+                simulatedGnss = fusionOutput.simulatedGnssLocation,
                 sensors = currentState.sensors,
                 gnssSummary = currentState.gnssSummary,
-                assessment = assessment
+                assessment = fusionOutput.assessment,
+                pdrState = fusionOutput.pdrState,
+                faultMode = fusionOutput.faultMode
+            )
+        }
+    }
+
+    private fun updatePdrSnapshot() {
+        val state = _uiState.value
+        val pdrState = positionEstimator.pdrEngine.getPdrState(
+            groundTruth = state.groundTruthLocation,
+            isPdrActive = positionEstimator.pdrEngine.isReady()
+        )
+
+        val pdrPt = if (pdrState.estimatedLatitude != 0.0) {
+            TrajectoryPoint(
+                latitude = pdrState.estimatedLatitude,
+                longitude = pdrState.estimatedLongitude,
+                timestampMs = System.currentTimeMillis(),
+                isPdr = true
+            )
+        } else null
+
+        val updatedPdrHistory = if (pdrPt != null) {
+            (state.pdrHistory + pdrPt).takeLast(200)
+        } else state.pdrHistory
+
+        _uiState.update {
+            it.copy(
+                pdrState = pdrState,
+                pdrHistory = updatedPdrHistory
             )
         }
     }
