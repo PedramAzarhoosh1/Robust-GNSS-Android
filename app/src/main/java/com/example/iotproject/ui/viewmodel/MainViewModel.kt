@@ -52,40 +52,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
+    @Volatile
+    private var latestSensors = SensorSnapshot()
+    @Volatile
+    private var latestGroundTruth: LocationData? = null
+    @Volatile
+    private var latestGnssSummary = GnssConstellationSummary()
+
     private var evaluationLoopJob: Job? = null
     private var recordingTimerJob: Job? = null
     private var recordingStartTimeMs: Long = 0L
 
     init {
-        // Collect sensor updates
+        // Collect sensor updates in memory (high rate, zero UI overhead)
         viewModelScope.launch {
             sensorDataManager.sensorSnapshot.collect { sensors ->
-                _uiState.update { it.copy(sensors = sensors) }
-                // Feed high-rate sensors directly to PDR
+                latestSensors = sensors
                 positionEstimator.pdrEngine.processSensorSnapshot(sensors)
-                updatePdrSnapshot()
             }
         }
 
         // Collect ground truth location updates
         viewModelScope.launch {
             locationDataManager.currentLocation.collect { loc ->
+                latestGroundTruth = loc
                 if (loc != null) {
                     val pt = TrajectoryPoint(latitude = loc.latitude, longitude = loc.longitude, timestampMs = loc.timestamp, isPdr = false)
                     val updatedGtHistory = (_uiState.value.groundTruthHistory + pt).takeLast(200)
                     _uiState.update { it.copy(groundTruthLocation = loc, groundTruthHistory = updatedGtHistory) }
-                } else {
-                    _uiState.update { it.copy(groundTruthLocation = null) }
                 }
-                performFusionCycle()
             }
         }
 
         // Collect GNSS satellite metadata
         viewModelScope.launch {
             locationDataManager.gnssSummary.collect { summary ->
-                _uiState.update { it.copy(gnssSummary = summary) }
-                performFusionCycle()
+                latestGnssSummary = summary
             }
         }
 
@@ -111,11 +113,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setFaultMode(mode: FaultInjectionMode) {
         positionEstimator.setFaultMode(mode)
         _uiState.update { it.copy(faultMode = mode) }
-        performFusionCycle()
     }
 
     fun resetPdr() {
-        val currentLoc = _uiState.value.groundTruthLocation
+        val currentLoc = latestGroundTruth
         positionEstimator.pdrEngine.reset(
             initialLat = currentLoc?.latitude ?: 0.0,
             initialLon = currentLoc?.longitude ?: 0.0
@@ -130,7 +131,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 pdrHistory = initialHistory
             )
         }
-        updatePdrSnapshot()
     }
 
     fun setCustomStepLength(lengthMeters: Float) {
@@ -159,54 +159,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         evaluationLoopJob?.cancel()
         evaluationLoopJob = viewModelScope.launch {
             while (isActive) {
-                performFusionCycle()
-                delay(400) // Continuous fusion & timeout assessment cycle
+                performThrottledCycle()
+                delay(200) // 5 Hz throttled cycle for rock-solid UI 60 FPS performance
             }
         }
     }
 
-    private fun performFusionCycle() {
-        val currentState = _uiState.value
+    private fun performThrottledCycle() {
+        val sensors = latestSensors
+        val rawGt = latestGroundTruth
+        val gnssSum = latestGnssSummary
+
         val fusionOutput = positionEstimator.processFrame(
-            rawGroundTruthLocation = currentState.groundTruthLocation,
-            sensors = currentState.sensors,
-            gnssSummary = currentState.gnssSummary,
+            rawGroundTruthLocation = rawGt,
+            sensors = sensors,
+            gnssSummary = gnssSum,
             currentTimeMs = System.currentTimeMillis()
         )
 
-        val updatedRecent = (listOf(fusionOutput.assessment) + currentState.recentAssessments).take(20)
-
-        _uiState.update {
-            it.copy(
-                simulatedGnssLocation = fusionOutput.simulatedGnssLocation,
-                assessment = fusionOutput.assessment,
-                pdrState = fusionOutput.pdrState,
-                faultMode = fusionOutput.faultMode,
-                recentAssessments = updatedRecent,
-                recordedSamplesCount = dataLogger.recordedSamplesCount
-            )
-        }
-
-        if (dataLogger.isRecording) {
-            dataLogger.logSample(
-                groundTruth = currentState.groundTruthLocation,
-                simulatedGnss = fusionOutput.simulatedGnssLocation,
-                sensors = currentState.sensors,
-                gnssSummary = currentState.gnssSummary,
-                assessment = fusionOutput.assessment,
-                pdrState = fusionOutput.pdrState,
-                faultMode = fusionOutput.faultMode
-            )
-        }
-    }
-
-    private fun updatePdrSnapshot() {
-        val state = _uiState.value
-        val pdrState = positionEstimator.pdrEngine.getPdrState(
-            groundTruth = state.groundTruthLocation,
-            isPdrActive = positionEstimator.pdrEngine.isReady()
-        )
-
+        val pdrState = fusionOutput.pdrState
         val pdrPt = if (pdrState.estimatedLatitude != 0.0) {
             TrajectoryPoint(
                 latitude = pdrState.estimatedLatitude,
@@ -216,14 +187,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
         } else null
 
+        val currentPdrHistory = _uiState.value.pdrHistory
         val updatedPdrHistory = if (pdrPt != null) {
-            (state.pdrHistory + pdrPt).takeLast(200)
-        } else state.pdrHistory
+            (currentPdrHistory + pdrPt).takeLast(200)
+        } else currentPdrHistory
+
+        val updatedRecent = (listOf(fusionOutput.assessment) + _uiState.value.recentAssessments).take(20)
 
         _uiState.update {
             it.copy(
+                groundTruthLocation = rawGt,
+                simulatedGnssLocation = fusionOutput.simulatedGnssLocation,
+                sensors = sensors,
+                gnssSummary = gnssSum,
+                assessment = fusionOutput.assessment,
                 pdrState = pdrState,
-                pdrHistory = updatedPdrHistory
+                pdrHistory = updatedPdrHistory,
+                faultMode = fusionOutput.faultMode,
+                recentAssessments = updatedRecent,
+                recordedSamplesCount = dataLogger.recordedSamplesCount
+            )
+        }
+
+        if (dataLogger.isRecording) {
+            dataLogger.logSample(
+                groundTruth = rawGt,
+                simulatedGnss = fusionOutput.simulatedGnssLocation,
+                sensors = sensors,
+                gnssSummary = gnssSum,
+                assessment = fusionOutput.assessment,
+                pdrState = pdrState,
+                faultMode = fusionOutput.faultMode
             )
         }
     }

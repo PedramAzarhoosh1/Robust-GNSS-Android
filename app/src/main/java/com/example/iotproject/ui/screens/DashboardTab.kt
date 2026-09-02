@@ -40,7 +40,16 @@ fun DashboardTab(
             )
         }
 
-        // 3. Live Estimation Error Gauge
+        // 3. Side-by-Side Numerical Comparison: GNSS vs PDR Coordinates & Distance
+        item {
+            PdrPositionComparisonCard(
+                groundTruth = uiState.groundTruthLocation,
+                pdrState = uiState.pdrState,
+                onResetPdr = { viewModel.resetPdr() }
+            )
+        }
+
+        // 4. Live Estimation Error Gauge
         item {
             ErrorGaugeCard(
                 errorMeters = uiState.pdrState.estimationErrorMeters,
@@ -49,12 +58,12 @@ fun DashboardTab(
             )
         }
 
-        // 4. GNSS Integrity Verdict
+        // 5. GNSS Integrity Verdict
         item {
             IntegrityBannerCard(assessment = uiState.assessment)
         }
 
-        // 5. Fault Injection Detailed Controls
+        // 6. Fault Injection Detailed Controls
         item {
             FaultInjectionCard(
                 currentMode = uiState.faultMode,
