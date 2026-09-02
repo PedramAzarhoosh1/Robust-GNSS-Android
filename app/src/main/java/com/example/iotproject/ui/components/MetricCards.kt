@@ -1,11 +1,15 @@
 package com.example.iotproject.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -21,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.iotproject.data.model.AssessmentResult
 import com.example.iotproject.data.model.GnssStatusState
+import com.example.iotproject.data.model.MotionContext
 import com.example.iotproject.ui.theme.*
 import java.util.Locale
 
@@ -40,7 +45,7 @@ fun PulsingStatusBadge(state: GnssStatusState, modifier: Modifier = Modifier) {
     Surface(
         color = state.color.copy(alpha = 0.15f),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, state.color.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, state.color.copy(alpha = 0.5f)),
         modifier = modifier
     ) {
         Row(
@@ -60,6 +65,41 @@ fun PulsingStatusBadge(state: GnssStatusState, modifier: Modifier = Modifier) {
                 color = state.color,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun MotionContextPill(context: MotionContext, modifier: Modifier = Modifier) {
+    val (icon, color, label) = when (context) {
+        MotionContext.STATIONARY -> Triple(Icons.Default.PanTool, BlueAccent, "STATIONARY (ZUPT)")
+        MotionContext.PEDESTRIAN_WALK -> Triple(Icons.Default.DirectionsWalk, TealAccent, "PEDESTRIAN WALKING")
+        MotionContext.VEHICLE_TRANSIT -> Triple(Icons.Default.DirectionsCar, CoralOrange, "IN-VEHICLE TRANSIT")
+    }
+
+    Surface(
+        color = color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.4f)),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                color = color,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp
             )
         }
     }
@@ -163,6 +203,13 @@ fun ErrorGaugeCard(
 
 @Composable
 fun IntegrityBannerCard(assessment: AssessmentResult, modifier: Modifier = Modifier) {
+    val trustPercent = (assessment.gpsTrustScore * 100).toInt()
+    val trustColor = when {
+        trustPercent >= 70 -> EmeraldGreen
+        trustPercent >= 35 -> AmberWarning
+        else -> RoseError
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -187,11 +234,46 @@ fun IntegrityBannerCard(assessment: AssessmentResult, modifier: Modifier = Modif
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MotionContextPill(context = assessment.motionContext)
+
+                Surface(
+                    color = trustColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, trustColor.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "Trust: $trustPercent%",
+                        color = trustColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = assessment.state.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Slate300
             )
+
+            if (assessment.spatialVarianceMeters > 0f) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Sliding Window Spatial Variance: ${String.format("%.1f", assessment.spatialVarianceMeters)} m²",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Slate400,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
             HorizontalDivider(color = Slate700)

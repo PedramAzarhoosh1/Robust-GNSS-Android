@@ -20,7 +20,7 @@ class PositionEstimator(
 
     /**
      * Main fusion cycle called on incoming data frames.
-     * Takes raw ground truth location and sensor snapshot.
+     * Takes raw ground truth location, sensor snapshot, and satellite status.
      */
     fun processFrame(
         rawGroundTruthLocation: LocationData?,
@@ -34,7 +34,7 @@ class PositionEstimator(
         // 2. Apply Fault Injection to simulate scenarios if active
         val simulatedGnssLocation = faultInjectionEngine.processLocation(rawGroundTruthLocation)
 
-        // 3. Evaluate GNSS Integrity of the simulated stream
+        // 3. Evaluate GNSS Integrity, continuous trust score, and motion context
         val assessment = integrityEvaluator.evaluate(
             currentLocation = simulatedGnssLocation,
             sensorSnapshot = sensors,
@@ -42,7 +42,7 @@ class PositionEstimator(
             currentTimeMs = currentTimeMs
         )
 
-        // 4. State Transition & Sensor Fusion Logic
+        // 4. Adaptive State Transition & Sensor Fusion
         when (assessment.state) {
             GnssStatusState.HEALTHY -> {
                 if (simulatedGnssLocation != null) {
@@ -55,7 +55,7 @@ class PositionEstimator(
                             isPdrPrimary = false
                             consecutiveHealthyFixes = 0
                         } else {
-                            // Still relying on PDR while checking consistency
+                            // Soft blending while verifying stability
                             pdrEngine.smoothConvergeToGnss(simulatedGnssLocation, factor = 0.15)
                         }
                     } else {
@@ -68,9 +68,15 @@ class PositionEstimator(
             }
 
             GnssStatusState.DEGRADED -> {
-                if (simulatedGnssLocation != null && !pdrEngine.isReady()) {
-                    pdrEngine.syncWithValidGnss(simulatedGnssLocation)
-                    lastValidGnssLocation = simulatedGnssLocation
+                if (simulatedGnssLocation != null) {
+                    if (!pdrEngine.isReady()) {
+                        pdrEngine.syncWithValidGnss(simulatedGnssLocation)
+                        lastValidGnssLocation = simulatedGnssLocation
+                    } else {
+                        // Adaptive weight blend for degraded signals based on trust score
+                        val weight = assessment.gpsTrustScore.coerceIn(0.1f, 0.5f).toDouble()
+                        pdrEngine.smoothConvergeToGnss(simulatedGnssLocation, factor = weight)
+                    }
                 }
             }
 

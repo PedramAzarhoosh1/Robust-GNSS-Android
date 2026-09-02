@@ -45,7 +45,8 @@ class DataLogger(private val context: Context) {
         writer = BufferedWriter(FileWriter(file, true))
         val header = "timestamp_ms,iso_time,gt_latitude,gt_longitude,gt_altitude,gt_accuracy,gt_speed,gt_bearing," +
                 "est_latitude,est_longitude,pdr_error_meters,pdr_steps,pdr_step_length_m,pdr_heading_deg,pdr_distance_m,is_pdr_active," +
-                "fault_mode,gnss_state,accel_x,accel_y,accel_z,linear_accel_x,linear_accel_y,linear_accel_z," +
+                "fault_mode,gnss_state,motion_context,gps_trust_score,spatial_variance_m," +
+                "accel_x,accel_y,accel_z,linear_accel_x,linear_accel_y,linear_accel_z," +
                 "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,heading_deg,step_count,satellites_total," +
                 "satellites_used,avg_cn0,is_stationary,assessment_reasons\n"
         writer?.write(header)
@@ -86,7 +87,7 @@ class DataLogger(private val context: Context) {
             val row = buildString {
                 append("$now,$isoTime,$gtLat,$gtLon,$gtAlt,$gtAcc,$gtSpeed,$gtBearing,")
                 append("$estLat,$estLon,$pdrError,${pdrState.totalSteps},${pdrState.stepLengthMeters},${pdrState.headingDegrees},${pdrState.totalDistanceMeters},${pdrState.isPdrActive},")
-                append("${faultMode.name},${assessment.state.name},")
+                append("${faultMode.name},${assessment.state.name},${assessment.motionContext.name},${String.format(Locale.US, "%.2f", assessment.gpsTrustScore)},${String.format(Locale.US, "%.2f", assessment.spatialVarianceMeters)},")
                 append("${sensors.accelerometer.x},${sensors.accelerometer.y},${sensors.accelerometer.z},")
                 append("${sensors.linearAcceleration.x},${sensors.linearAcceleration.y},${sensors.linearAcceleration.z},")
                 append("${sensors.gyroscope.x},${sensors.gyroscope.y},${sensors.gyroscope.z},")

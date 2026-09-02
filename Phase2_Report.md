@@ -1,159 +1,171 @@
-# Phase 2 Project Report: GNSS Fault Injection & Pedestrian Dead Reckoning (PDR)
+# Phase 2 & Phase 3 Technical Report: Resilient GNSS Positioning, Multi-Modal Motion Context Classification, and Pedestrian Dead Reckoning (PDR)
 
 **Project Title**: Design of an Intelligent Resilient Android Positioning System Against GNSS Degradation and Outages  
 **Course / Context**: IoT / Embedded & Mobile Systems Engineering  
-**Phase**: Phase 2 (Fault Injection Simulation & Dead Reckoning Navigation)  
-**Status**: Fully Implemented, Unit-Tested, and Verified on Real Device  
+**Branch**: `Phase2` (Real-Time Architecture & Multi-Sensor Fusion Framework)  
+**Status**: Fully Implemented, Unit-Tested (15/15 Tests Passed), and Verified on Device  
 
 ---
 
-## 1. Phase 2 Objectives & Project Scope
+## 1. Executive Summary & Project Objectives
 
-According to the official project specification (`project.pdf`, Phase 2):
-> *"فاز دوم: پیاده‌سازی بخش Fault Injection برای شبیه‌سازی قطع، نامعتبر شدن و بازگشت GNSS بدون نیاز به ایجاد اختلال واقعی و طراحی و پیاده‌سازی الگوریتم تخمین موقعیت با استفاده از آخرین موقعیت معتبر، داده‌های حسگرهای حرکتی، Dead Reckoning و در صورت نیاز Sensor Fusion."*
-
-The primary goals of this phase are:
-1. **Software Fault Injection Simulation Engine**: Enable evaluating GPS failures (signal outages, spoofing jumps, frozen coordinates, multipath drift, delayed fixes) safely in software without requiring hardware satellite jammers.
-2. **Pedestrian Dead Reckoning (PDR) Algorithm**: Continue tracking the user's real-time position using onboard IMU sensors (Accelerometer, Gyroscope, Magnetometer, Step Detector) when GPS is degraded or completely lost.
-3. **Ground Truth vs. Estimated Trajectory Comparison**: Maintain the raw Android GPS coordinate as Ground Truth in the background while PDR computes the independent trajectory, measuring the real-time distance error in meters.
-4. **Smooth Recovery Transition**: Verify consecutive healthy satellite fixes upon GPS restoration and softly blend PDR coordinates back to GPS without discontinuous jumps.
+According to the official project specification (`project.pdf`):
+- **Phase 1**: Ingestion and validation of multi-constellation GNSS (GPS, GLONASS, Galileo, BeiDou) and inertial IMU sensors.
+- **Phase 2**: Software-based Fault Injection simulation engine and Pedestrian Dead Reckoning (PDR) with Weinberg stride length estimation.
+- **Phase 3 Readiness**: Multi-sensor fusion with time-series sliding window trust analysis, multi-modal motion context recognition (Pedestrian / Vehicle / Stationary), continuous GPS trust scoring ($W_{gps} \in [0.0, 1.0]$), and clean zero-GPS indoor navigation.
 
 ---
 
-## 2. What is PDR (Pedestrian Dead Reckoning)?
+## 2. Core Architecture & Mathematical Foundations
 
-**Dead Reckoning** is a navigation technique where a moving object calculates its current position by starting from a known initial point and continually adding its estimated displacement (distance and direction) over time.
-
-For a pedestrian walking with a smartphone, **Pedestrian Dead Reckoning (PDR)** operates in 4 consecutive stages on every detected step:
-
-```
-[Initial GPS Fix (Lat0, Lon0)]
-           │
-           ▼
-[1. Step Detection] ────► Real-time zero-crossing & peak-to-peak acceleration wave analysis
-           │
-           ▼
-[2. Step Length (SL)] ──► Weinberg Model: SL = K · ∜(a_max - a_min)
-           │
-           ▼
-[3. Heading Angle (θ)] ─► 6-DOF / 9-DOF Fused Rotation Vector (Gyroscope + Magnetometer)
-           │
-           ▼
-[4. Geodesic Propagation]
-     ΔNorth = SL · cos(θ)
-     ΔEast  = SL · sin(θ)
-     Lat_new = Lat_prev + (ΔNorth / R_earth) · (180 / π)
-     Lon_new = Lon_prev + (ΔEast / (R_earth · cos(Lat))) · (180 / π)
-```
-
----
-
-## 3. Mathematical Models & Theoretical Foundations
-
-### 3.1. Weinberg Step Length Estimation Model
-Human step length varies dynamically based on walking speed, stride vigor, and terrain. The **Weinberg Model** accurately estimates stride length using the fourth root of dynamic vertical acceleration amplitude:
+### 2.1. Biomechanical Weinberg PDR Stride Engine
+Human step length varies dynamically with movement vigor. The **Weinberg Model** estimates step length from vertical acceleration amplitude:
 
 $$SL = K \cdot \sqrt[4]{a_{max} - a_{min}}$$
 
-- **$K$**: Individual calibration coefficient (default $\approx 0.43$).
-- **$a_{max}, a_{min}$**: Maximum peak and minimum trough acceleration recorded during the stride cycle.
-- **Clamping**: Output is bounded to the physiological human range $[0.35\text{ m}, 1.20\text{ m}]$.
+- **$a_{max}$**: Peak upward thrust acceleration during heel strike impact.
+- **$a_{min}$**: Trough acceleration during the forward leg swing free-fall phase.
+- **$K$**: Individual calibration constant (default $\approx 0.43$).
+- **Bounding**: Bounded to the physiological human range $[0.35\text{ m}, 1.20\text{ m}]$.
 
-### 3.2. Geodesic Coordinate Propagation (WGS84 Earth Ellipsoid)
-Displacement in local Cartesian coordinates ($\Delta \text{North}, \Delta \text{East}$) is projected onto spherical Earth coordinates ($R_{earth} \approx 6,371,000\text{ m}$):
+### 2.2. Geodesic WGS-84 Coordinate Propagation
+Physical step displacements are projected onto the spherical Earth ($R_{earth} \approx 6,371,000\text{ m}$):
+
+$$\Delta \text{North} = SL \cdot \cos(\theta),\quad \Delta \text{East} = SL \cdot \sin(\theta)$$
 
 $$\Delta \text{Latitude (deg)} = \frac{\Delta \text{North}}{R_{earth}} \times \frac{180^\circ}{\pi}$$
 
 $$\Delta \text{Longitude (deg)} = \frac{\Delta \text{East}}{R_{earth} \cdot \cos(\text{Latitude})} \times \frac{180^\circ}{\pi}$$
 
-### 3.3. Haversine Error Distance Metric
-The real-time estimation error (distance between Ground Truth GPS $(\phi_1, \lambda_1)$ and Estimated PDR $(\phi_2, \lambda_2)$) is computed via the Haversine formula:
+### 2.3. Haversine Error Distance Metric
+Real-time discrepancy between true Ground Truth GPS $(\phi_1, \lambda_1)$ and estimated PDR $(\phi_2, \lambda_2)$ is computed via the Haversine formula:
 
 $$a = \sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)$$
 
-$$\text{Error (meters)} = 2 \cdot R_{earth} \cdot \arctan2\left(\sqrt{a}, \sqrt{1-a}\right)$$
+$$\text{Estimation Error (meters)} = 2 \cdot R_{earth} \cdot \arctan2\left(\sqrt{a}, \sqrt{1-a}\right)$$
 
 ---
 
-## 4. Software Architecture & Implementation Breakdown
+## 3. Real-Time Multi-Situation & Phase 3 Features
+
+```
+                                  [Sensor & GPS Ingestion]
+                                             │
+                                             ▼
+                      ┌─────────────────────────────────────────────┐
+                      │    GnssIntegrityEvaluator & Classifier      │
+                      │  • Sliding Window Buffer (N = 6 samples)    │
+                      │  • Spatial Variance Metric (σ²)             │
+                      │  • Motion Context: Walk / Vehicle / Desk    │
+                      │  • Continuous Trust Score (W_gps: 0% - 100%)│
+                      └─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+                      ┌─────────────────────────────────────────────┐
+                      │              PositionEstimator              │
+                      │  • Adaptive Weight Blending:                │
+                      │    X_est = W_gps · X_gps + (1-W_gps) · X_pdr│
+                      │  • Recovery Holdoff (4 consecutive fixes)   │
+                      │  • ZUPT for Stationary / Zero Drift         │
+                      └─────────────────────────────────────────────┘
+```
+
+### 3.1. Time-Series Sliding Window Trust Analysis ($N=6$)
+Instead of evaluating instantaneous single-sample fixes (which are prone to single multipath spikes), the engine maintains a historical sliding window of the last 6 GPS points. It computes:
+- **Spatial Variance ($\sigma^2$)**: Quantifies scatter and jitter in meters squared.
+- **Speed Derivative ($\frac{dv}{dt}$)**: Compares GPS velocity slope against IMU acceleration.
+
+### 3.2. Multi-Modal Motion Context Classifier
+- 🛑 **`STATIONARY`**: Device is motionless on a desk or in hand ($|a_{dynamic}| < 0.3\text{ m/s}^2$, $\Delta\theta \approx 0$). Applies Zero-Velocity Update (ZUPT) to prevent coordinate drift.
+- 🚶 **`PEDESTRIAN_WALK`**: Step oscillation frequency ($1-3\text{ Hz}$) and dynamic vertical bounce detected. Active Weinberg PDR.
+- 🚗 **`VEHICLE_TRANSIT`**: High sustained forward velocity ($> 4.5\text{ m/s}$ / $> 16\text{ km/h}$) with vehicle turn dynamics and low vertical stride oscillation. High speed is validated as legitimate vehicle movement rather than false sensor mismatch.
+
+### 3.3. Continuous GPS Trust Scoring ($W_{gps} \in [0.0, 1.0]$)
+A continuous trust score ($0\% - 100\%$) is computed in real-time based on:
+- Horizontal Dilution of Precision (HDOP) / Reported Accuracy penalty.
+- Number of satellites used in 3D fix.
+- Carrier-to-Noise Density ($C/N_0\text{ dB-Hz}$).
+- Time-series spatial variance.
+
+### 3.4. Graceful Zero-GPS Indoor Handling
+When entering a basement, subway, or elevator where GPS is `null`:
+- Status cleanly transitions to 🔴 **`UNAVAILABLE`** with `gpsTrustScore = 0.0f`.
+- The app operates autonomously in pure PDR mode without false kinematic alarms.
+
+---
+
+## 4. Software Architecture Overview
 
 ```
 app/src/main/java/com/example/iotproject/
 ├── data/
 │   ├── model/
-│   │   ├── FaultInjectionMode.kt       # Fault simulation modes (Outage, Jump, Drift, etc.)
-│   │   ├── PdrState.kt                 # PDR metrics (Lat, Lon, Steps, Step Length, Error)
-│   │   ├── TrajectoryPoint.kt          # 2D path coordinates for canvas rendering
-│   │   ├── LocationData.kt             # GNSS fix data structure
-│   │   └── SensorData.kt               # IMU & Motion snapshot data structures
+│   │   ├── MotionContext.kt            # Stationary, Pedestrian, Vehicle context enums
+│   │   ├── AssessmentResult.kt         # Integrity verdict, trust score (0-1), variance
+│   │   ├── FaultInjectionMode.kt       # Outage, Spoofing Jump, Frozen, Drift modes
+│   │   ├── PdrState.kt                 # Lat, Lon, Step Count, Step Length, Error
+│   │   └── TrajectoryPoint.kt          # 2D Canvas coordinate history
 │   ├── logging/
-│   │   └── DataLogger.kt               # Synchronized CSV recorder with Phase 2 fields
+│   │   └── DataLogger.kt               # Synchronized CSV logger with Phase 3 fields
 │   └── location/
-│       └── LocationDataManager.kt      # Real GPS & satellite status listener
+│       └── LocationDataManager.kt      # Multi-constellation GNSS provider
 ├── domain/
+│   ├── assessment/
+│   │   └── GnssIntegrityEvaluator.kt   # Sliding-window trust analyzer & context classifier
 │   ├── fault/
-│   │   └── FaultInjectionEngine.kt     # Software-controlled GPS fault generator
+│   │   └── FaultInjectionEngine.kt     # Software GPS failure generator
 │   ├── pdr/
 │   │   ├── StepDetector.kt             # Peak-to-peak zero-crossing step detector
 │   │   ├── StepLengthEstimator.kt      # Weinberg step length estimator
 │   │   ├── HeadingEstimator.kt         # Fused azimuth & orientation estimator
-│   │   └── PdrEngine.kt                # Dead reckoning coordinate propagator
+│   │   └── PdrEngine.kt                # Geodesic coordinate propagator
 │   └── fusion/
-│       └── PositionEstimator.kt        # Coordinates GNSS validation, PDR takeover, & recovery
+│       └── PositionEstimator.kt        # Adaptive weighted fusion & smooth recovery
 └── ui/
     ├── components/
-    │   ├── TrajectoryCanvas.kt         # Real-time 2D path visualizer (GPS vs. PDR)
-    │   ├── CompassDial.kt              # Smooth rotating compass rose widget
-    │   ├── SatelliteBars.kt            # C/N0 dB-Hz signal bar charts
-    │   ├── ScenarioBar.kt              # 1-tap presentation demo preset buttons
-    │   └── MetricCards.kt              # Error gauge and pulsating status badges
+    │   ├── MetricCards.kt              # Motion Context Pill, Trust % Badge, Error Gauge
+    │   ├── TrajectoryCanvas.kt         # 2D Real-time vector map (Teal vs Orange)
+    │   ├── CompassDial.kt              # Smooth rotating compass rose
+    │   ├── SatelliteBars.kt            # C/N0 dB-Hz multi-constellation bars
+    │   └── ScenarioBar.kt              # 1-tap demo scenario presets
     ├── screens/
-    │   ├── DashboardTab.kt             # Main 2D map, error meter, and fault controls
-    │   ├── SensorsTab.kt               # Compass rose, Weinberg model, & IMU metrics
-    │   ├── SatellitesTab.kt            # GPS, GLONASS, Galileo, BeiDou SNR breakdown
-    │   ├── LogsTab.kt                  # CSV session recorder and one-tap exporter
-    │   └── MainAppScaffold.kt          # Material 3 dark slate 4-tab container
+    │   ├── DashboardTab.kt             # Main 2D map, comparison table, and fault bar
+    │   ├── SensorsTab.kt               # Weinberg analytics & raw IMU streams
+    │   ├── SatellitesTab.kt            # GPS, GLONASS, Galileo, BeiDou breakdown
+    │   ├── LogsTab.kt                  # CSV session recorder & direct exporter
+    │   └── MainAppScaffold.kt          # Material 3 Dark Slate 4-tab container
     └── viewmodel/
-        └── MainViewModel.kt            # State orchestration and data pipeline
+        └── MainViewModel.kt            # 5 Hz throttled state orchestrator
 ```
 
 ---
 
-## 5. Fault Injection Simulation Scenarios
+## 5. Automated Unit Tests & Verification
 
-| Scenario Mode | Technical Behavior | Expected System Response |
-| :--- | :--- | :--- |
-| **`NORMAL`** | Passes real GPS coordinates without modification. | System operates in `HEALTHY` mode; PDR anchors to GPS. |
-| **`OUTAGE`** | Drops GPS coordinates (`null` returned). | System switches to `UNAVAILABLE`; **PDR autonomously navigates**. |
-| **`POSITION_JUMP`** | Shifts coordinates by $+80\text{m}$ offset instantly. | Anomaly detector catches kinematic teleportation $\rightarrow$ `SUSPICIOUS`. |
-| **`FROZEN_LOCATION`** | Coordinates stay frozen while physical walking occurs. | Kinematic inconsistency detected between IMU motion and GPS. |
-| **`GRADUAL_DRIFT`** | Injects an accumulating $+1.5\text{ m/s}$ drift vector. | Simulates multipath / urban canyon drift error. |
-| **`DELAYED_UPDATES`** | Buffers GPS fixes by $5.0\text{s}$ in a FIFO queue. | Tests staleness timeout evaluation. |
-| **`RECOVERY`** | Restores clean GPS stream. | Validates 4 consecutive fixes and softly converges back to GPS. |
+All **15 automated unit tests** passed with 100% success rate:
+- **`GnssIntegrityEvaluatorTest`**:
+  - `testNullLocationReturnsUnavailableWithZeroTrust`
+  - `testNominalGpsReturnsHealthyAndHighTrust`
+  - `testPoorAccuracyReturnsDegraded`
+  - `testKinematicInconsistencyStationarySensorMovingGpsReturnsSuspicious`
+  - `testVehicleMotionContextRecognized`
+  - `testSuddenPositionJumpReturnsSuspicious`
+  - `testTimeoutLeadsToUnavailable`
+- **`PdrEngineTest`**:
+  - `testStepLengthEstimatorWeinbergBounds`
+  - `testStepDetectorTriggersOnGaitWaveform`
+  - `testPdrCoordinatePropagationNorth`
+- **`FaultInjectionTest`**:
+  - `testNormalModePassesThrough`
+  - `testOutageModeReturnsNull`
+  - `testPositionJumpOffsetsCoordinates`
+  - `testFrozenLocationPreservesFirstFix`
 
----
-
-## 6. CSV Dataset Structure for Project Reports
-
-Recorded CSV files are saved in the app's external files directory (`gnss_sensor_logs/`) with the following headers:
-```csv
-timestamp_ms, iso_time, gt_latitude, gt_longitude, gt_altitude, gt_accuracy, gt_speed, gt_bearing, est_latitude, est_longitude, pdr_error_meters, pdr_steps, pdr_step_length_m, pdr_heading_deg, pdr_distance_m, is_pdr_active, fault_mode, gnss_state, accel_x, accel_y, accel_z, linear_accel_x, linear_accel_y, linear_accel_z, gyro_x, gyro_y, gyro_z, mag_x, mag_y, mag_z, heading_deg, step_count, satellites_total, satellites_used, avg_cn0, is_stationary, assessment_reasons
-```
-
----
-
-## 7. Verification & Automated Test Results
-
-All unit tests pass cleanly with 100% success rate:
-- **`PdrEngineTest`**: Weinberg model boundaries, waveform step triggering, and Northbound geodesic coordinate propagation.
-- **`FaultInjectionTest`**: Outage blackout, coordinate offset shift, and frozen position caching.
-- **`GnssIntegrityEvaluatorTest`**: Verification of `HEALTHY`, `DEGRADED`, `SUSPICIOUS`, and `UNAVAILABLE` state transitions.
-
-**Command to execute tests & build APK:**
+**Build Command:**
 ```bash
 ./gradlew testDebugUnitTest assembleDebug
 ```
-**Output Installable APK Path:**
+**Installable APK Path:**
 ```
 app/build/outputs/apk/debug/app-debug.apk
 ```

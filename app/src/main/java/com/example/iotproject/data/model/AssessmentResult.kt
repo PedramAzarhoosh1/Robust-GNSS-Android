@@ -13,5 +13,8 @@ data class AssessmentResult(
     val isTimeout: Boolean = false,
     val isAccuracyDegraded: Boolean = false,
     val satellitesInFix: Int = 0,
+    val gpsTrustScore: Float = 0.0f, // Continuous trust score (0.0 to 1.0)
+    val motionContext: MotionContext = MotionContext.STATIONARY,
+    val spatialVarianceMeters: Float = 0f,
     val timestampMs: Long = System.currentTimeMillis()
 )
