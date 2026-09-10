@@ -48,71 +48,49 @@ fun MapTab(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Sleek Minimal Scenario Floating Chip at TopCenter (Replaces giant 110dp block)
-        Box(
+        // 2. Ultra-Compact Floating 4-Scenario Segmented Bar (1-Tap Instant Switching, Max Map Visibility)
+        Surface(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 12.dp)
+                .padding(top = 10.dp),
+            color = Slate900.copy(alpha = 0.92f),
+            shape = RoundedCornerShape(22.dp),
+            border = BorderStroke(1.dp, Slate700.copy(alpha = 0.6f)),
+            shadowElevation = 6.dp
         ) {
-            val isFault = uiState.faultMode != FaultInjectionMode.NORMAL
-            Surface(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { scenarioDropdownOpen = true },
-                color = Slate900.copy(alpha = 0.90f),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(
-                    1.dp,
-                    if (isFault) RoseError.copy(alpha = 0.5f) else CyanAccent.copy(alpha = 0.35f)
-                ),
-                shadowElevation = 4.dp
+            Row(
+                modifier = Modifier.padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(if (isFault) RoseError else EmeraldGreen, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Scenario: ${uiState.faultMode.displayName.take(18)}",
-                        color = if (isFault) RoseError else Slate100,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Switch Scenario",
-                        tint = Slate400,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            DropdownMenu(
-                expanded = scenarioDropdownOpen,
-                onDismissRequest = { scenarioDropdownOpen = false },
-                modifier = Modifier.background(Slate900)
-            ) {
-                FaultInjectionMode.values().forEach { mode ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = mode.displayName,
-                                fontWeight = if (mode == uiState.faultMode) FontWeight.Bold else FontWeight.Normal,
-                                color = if (mode == uiState.faultMode) CyanAccent else Slate100,
-                                fontSize = 12.sp
-                            )
-                        },
-                        onClick = {
-                            viewModel.setFaultMode(mode)
-                            scenarioDropdownOpen = false
-                        }
-                    )
-                }
+                ScenarioSegmentChip(
+                    label = "Normal",
+                    icon = Icons.Default.GpsFixed,
+                    isActive = uiState.faultMode == FaultInjectionMode.NORMAL,
+                    activeColor = CyanAccent,
+                    onClick = { viewModel.setFaultMode(FaultInjectionMode.NORMAL) }
+                )
+                ScenarioSegmentChip(
+                    label = "Tunnel",
+                    icon = Icons.Default.GpsOff,
+                    isActive = uiState.faultMode == FaultInjectionMode.OUTAGE,
+                    activeColor = RoseError,
+                    onClick = { viewModel.setFaultMode(FaultInjectionMode.OUTAGE) }
+                )
+                ScenarioSegmentChip(
+                    label = "Spoofing",
+                    icon = Icons.Default.Warning,
+                    isActive = uiState.faultMode == FaultInjectionMode.POSITION_JUMP,
+                    activeColor = CoralOrange,
+                    onClick = { viewModel.setFaultMode(FaultInjectionMode.POSITION_JUMP) }
+                )
+                ScenarioSegmentChip(
+                    label = "Recovery",
+                    icon = Icons.Default.Autorenew,
+                    isActive = uiState.faultMode == FaultInjectionMode.RECOVERY,
+                    activeColor = EmeraldGreen,
+                    onClick = { viewModel.setFaultMode(FaultInjectionMode.RECOVERY) }
+                )
             }
         }
 
@@ -331,6 +309,42 @@ fun MapTab(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ScenarioSegmentChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isActive: Boolean,
+    activeColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick),
+        color = if (isActive) activeColor else androidx.compose.ui.graphics.Color.Transparent,
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive) Slate900 else Slate400,
+                modifier = Modifier.size(13.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                color = if (isActive) Slate900 else Slate300,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 11.sp
+            )
         }
     }
 }

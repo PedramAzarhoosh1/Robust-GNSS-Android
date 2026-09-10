@@ -37,19 +37,27 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
-// 1. CartoDB Voyager (HD Street Names & Persian/English Labels, 100% immune to 403)
-val CartoVoyagerTileSource = XYTileSource(
-    "CartoVoyager",
-    0, 20, 256, ".png",
+// 1. OpenStreetMap Humanitarian (HOT) - Full Persian & English Typography, NO Watermark, NO 403
+val OsmHotTileSource = XYTileSource(
+    "OpenStreetMapHOT",
+    0, 19, 256, ".png",
     arrayOf(
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/",
-        "https://b.basemaps.cartocdn.com/rastertiles/voyager/",
-        "https://c.basemaps.cartocdn.com/rastertiles/voyager/",
-        "https://d.basemaps.cartocdn.com/rastertiles/voyager/"
+        "https://a.tile.openstreetmap.fr/hot/",
+        "https://b.tile.openstreetmap.fr/hot/",
+        "https://c.tile.openstreetmap.fr/hot/"
     )
 )
 
-// 2. CartoDB Positron (Clean Light)
+// 2. OpenStreetMap High-Performance Community Engine (DE) - Persian Labels, NO Watermark
+val OsmDeTileSource = XYTileSource(
+    "OpenStreetMapDE",
+    0, 19, 256, ".png",
+    arrayOf(
+        "https://tile.openstreetmap.de/"
+    )
+)
+
+// 3. CartoDB Positron (Clean Light)
 val CartoPositronTileSource = XYTileSource(
     "CartoPositron",
     0, 20, 256, ".png",
@@ -61,7 +69,7 @@ val CartoPositronTileSource = XYTileSource(
     )
 )
 
-// 3. CartoDB Dark Matter
+// 4. CartoDB Dark Matter
 val CartoDarkTileSource = XYTileSource(
     "CartoDark",
     0, 20, 256, ".png",
@@ -96,9 +104,10 @@ fun LiveMapView(
 
     val tileSources = remember {
         listOf(
-            CartoVoyagerTileSource to "Voyager Streets",
-            CartoPositronTileSource to "CartoDB Light",
-            CartoDarkTileSource to "CartoDB Dark"
+            OsmHotTileSource to "Persian Streets (HOT)",
+            OsmDeTileSource to "OSM HD (DE)",
+            CartoDarkTileSource to "Dark Theme",
+            CartoPositronTileSource to "Light Theme"
         )
     }
 
