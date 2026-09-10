@@ -37,15 +37,19 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
-// 1. OpenStreetMap Standard (Mapnik) - Pure, clean HD streets with NO watermarks
-// 2. OpenStreetMap Humanitarian (HOT)
-val OsmHotTileSource = XYTileSource(
-    "OpenStreetMapHOT",
-    0, 19, 256, ".png",
-    arrayOf("https://tile.openstreetmap.fr/hot/")
+// 1. CartoDB Voyager (HD Street Names & Persian/English Labels, 100% immune to 403)
+val CartoVoyagerTileSource = XYTileSource(
+    "CartoVoyager",
+    0, 20, 256, ".png",
+    arrayOf(
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/",
+        "https://b.basemaps.cartocdn.com/rastertiles/voyager/",
+        "https://c.basemaps.cartocdn.com/rastertiles/voyager/",
+        "https://d.basemaps.cartocdn.com/rastertiles/voyager/"
+    )
 )
 
-// 3. CartoDB Positron
+// 2. CartoDB Positron (Clean Light)
 val CartoPositronTileSource = XYTileSource(
     "CartoPositron",
     0, 20, 256, ".png",
@@ -57,7 +61,7 @@ val CartoPositronTileSource = XYTileSource(
     )
 )
 
-// 4. CartoDB Dark Matter
+// 3. CartoDB Dark Matter
 val CartoDarkTileSource = XYTileSource(
     "CartoDark",
     0, 20, 256, ".png",
@@ -92,9 +96,8 @@ fun LiveMapView(
 
     val tileSources = remember {
         listOf(
-            TileSourceFactory.MAPNIK to "OSM Standard",
-            OsmHotTileSource to "OSM Humanitarian (HOT)",
-            CartoPositronTileSource to "CartoDB Positron",
+            CartoVoyagerTileSource to "Voyager Streets",
+            CartoPositronTileSource to "CartoDB Light",
             CartoDarkTileSource to "CartoDB Dark"
         )
     }
@@ -281,64 +284,6 @@ fun LiveMapView(
             }
         )
 
-        // Floating Info Badge / Jump to Tehran if on Emulator
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 12.dp, top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Surface(
-                color = Slate900.copy(alpha = 0.88f),
-                shape = RoundedCornerShape(10.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Slate700.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = "🗺️ ${tileSources[currentTileIndex].second}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = CyanAccent,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            if (!isInsideIran) {
-                Surface(
-                    color = CoralOrange.copy(alpha = 0.25f),
-                    shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CoralOrange.copy(alpha = 0.4f)),
-                    modifier = Modifier.clickable {
-                        followMode = false
-                        mapViewInstance?.controller?.animateTo(GeoPoint(35.6997, 51.3380), 16.5, 600L)
-                    }
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationCity,
-                            contentDescription = "Tehran",
-                            tint = CoralOrange,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "Tehran 🇮🇷",
-                            color = CoralOrange,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
-                        )
-                    }
-                }
-            }
-        }
-
         // Floating Compact Map Controls (Top-Right Toolbar - Never covers bottom HUD)
         Surface(
             modifier = Modifier
@@ -380,6 +325,24 @@ fun LiveMapView(
                         tint = if (followMode) CyanAccent else Slate400,
                         modifier = Modifier.size(18.dp)
                     )
+                }
+
+                // Jump to Tehran (when testing on emulator or outside Iran)
+                if (!isInsideIran) {
+                    IconButton(
+                        onClick = {
+                            followMode = false
+                            mapViewInstance?.controller?.animateTo(GeoPoint(35.6997, 51.3380), 16.5, 500L)
+                        },
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationCity,
+                            contentDescription = "Tehran",
+                            tint = CoralOrange,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
                 // Switch Map Style
