@@ -21,6 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.iotproject.ui.components.PulsingStatusBadge
+import com.example.iotproject.ui.screens.tabs.DashboardTab
+import com.example.iotproject.ui.screens.tabs.LogsTab
+import com.example.iotproject.ui.screens.tabs.MapTab
+import com.example.iotproject.ui.screens.tabs.SatellitesTab
+import com.example.iotproject.ui.screens.tabs.SensorsTab
 import com.example.iotproject.ui.theme.*
 import com.example.iotproject.ui.viewmodel.MainViewModel
 

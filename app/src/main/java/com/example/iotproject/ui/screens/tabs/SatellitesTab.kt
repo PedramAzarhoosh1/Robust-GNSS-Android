@@ -1,5 +1,6 @@
-package com.example.iotproject.ui.screens
+package com.example.iotproject.ui.screens.tabs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.iotproject.data.model.GnssConstellationSummary
@@ -85,11 +87,11 @@ fun SatellitesTab(
 }
 
 @Composable
-fun ConstellationChip(name: String, count: Int, color: androidx.compose.ui.graphics.Color) {
+fun ConstellationChip(name: String, count: Int, color: Color) {
     Surface(
         color = color.copy(alpha = 0.12f),
         shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

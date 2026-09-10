@@ -1,8 +1,9 @@
-package com.example.iotproject.ui.screens
+package com.example.iotproject.ui.screens.tabs
 
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -60,7 +61,7 @@ fun MapTab(
                     .clickable { scenarioDropdownOpen = true },
                 color = Slate900.copy(alpha = 0.90f),
                 shape = RoundedCornerShape(20.dp),
-                border = androidx.compose.foundation.BorderStroke(
+                border = BorderStroke(
                     1.dp,
                     if (isFault) RoseError.copy(alpha = 0.5f) else CyanAccent.copy(alpha = 0.35f)
                 ),
@@ -124,7 +125,7 @@ fun MapTab(
                 .animateContentSize(),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Slate900.copy(alpha = 0.94f)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Slate700.copy(alpha = 0.6f))
+            border = BorderStroke(1.dp, Slate700.copy(alpha = 0.6f))
         ) {
             Column(
                 modifier = Modifier
@@ -261,7 +262,7 @@ fun MapTab(
                             modifier = Modifier.weight(1f),
                             color = Slate800,
                             shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, TealAccent.copy(alpha = 0.3f))
+                            border = BorderStroke(1.dp, TealAccent.copy(alpha = 0.3f))
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -285,7 +286,7 @@ fun MapTab(
                             modifier = Modifier.weight(1f),
                             color = Slate800,
                             shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, CoralOrange.copy(alpha = 0.3f))
+                            border = BorderStroke(1.dp, CoralOrange.copy(alpha = 0.3f))
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {

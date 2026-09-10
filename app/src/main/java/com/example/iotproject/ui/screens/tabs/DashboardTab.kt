@@ -1,4 +1,4 @@
-package com.example.iotproject.ui.screens
+package com.example.iotproject.ui.screens.tabs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.iotproject.ui.components.*
+import com.example.iotproject.ui.screens.FaultInjectionCard
+import com.example.iotproject.ui.screens.PdrPositionComparisonCard
 import com.example.iotproject.ui.viewmodel.MainUiState
 import com.example.iotproject.ui.viewmodel.MainViewModel
 

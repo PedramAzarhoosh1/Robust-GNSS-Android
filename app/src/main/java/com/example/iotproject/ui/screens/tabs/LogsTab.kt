@@ -1,6 +1,6 @@
-package com.example.iotproject.ui.screens
+package com.example.iotproject.ui.screens.tabs
 
-import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.sp
 import com.example.iotproject.ui.theme.*
 import com.example.iotproject.ui.viewmodel.MainUiState
 import com.example.iotproject.ui.viewmodel.MainViewModel
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -178,7 +177,7 @@ fun LogsTab(
                         IconButton(
                             onClick = {
                                 val shareIntent = viewModel.getShareIntentForFile(file)
-                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share CSV Dataset"))
+                                context.startActivity(Intent.createChooser(shareIntent, "Share CSV Dataset"))
                             }
                         ) {
                             Icon(

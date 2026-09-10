@@ -1,4 +1,4 @@
-package com.example.iotproject.ui.screens
+package com.example.iotproject.ui.screens.tabs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
