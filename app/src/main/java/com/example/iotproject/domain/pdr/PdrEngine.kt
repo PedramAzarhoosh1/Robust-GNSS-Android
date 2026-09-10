@@ -52,7 +52,15 @@ class PdrEngine {
 
     fun processSensorSnapshot(sensors: SensorSnapshot) {
         headingEstimator.updateHeading(sensors)
-        stepDetector.processSensorSample(sensors.accelerometer, sensors.timestampMs)
+        val dynamicMag = sensors.linearAcceleration.magnitude.let {
+            if (it > 0f) it else sensors.dynamicAccelMagnitude
+        }
+        stepDetector.processSensorSample(
+            accel = sensors.accelerometer,
+            dynamicAccelMag = dynamicMag,
+            isDeviceStationary = sensors.isDeviceStationary,
+            timestampMs = sensors.timestampMs
+        )
     }
 
     fun syncWithValidGnss(gnssLocation: LocationData) {
@@ -75,6 +83,8 @@ class PdrEngine {
             computeDistanceMeters(groundTruth.latitude, groundTruth.longitude, estimatedLat, estimatedLon)
         } else 0f
 
+        val currentFrequency = if (System.currentTimeMillis() - lastStepTimestampMs > 2000L) 0f else stepFrequencyHz
+
         return PdrState(
             estimatedLatitude = estimatedLat,
             estimatedLongitude = estimatedLon,
@@ -85,7 +95,7 @@ class PdrEngine {
             estimationErrorMeters = errorMeters,
             isPdrActive = isPdrActive,
             lastStepTimestampMs = lastStepTimestampMs,
-            stepFrequencyHz = stepFrequencyHz
+            stepFrequencyHz = currentFrequency
         )
     }
 

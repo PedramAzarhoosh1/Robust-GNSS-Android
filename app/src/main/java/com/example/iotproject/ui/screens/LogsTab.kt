@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.iotproject.ui.theme.*
 import com.example.iotproject.ui.viewmodel.MainUiState
 import com.example.iotproject.ui.viewmodel.MainViewModel
@@ -57,13 +58,14 @@ fun LogsTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                             Text(
-                                text = if (uiState.isRecording) "Recording CSV Session..." else "Dataset Logger",
+                                text = if (uiState.isRecording) "Recording Session..." else "Dataset Logger",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (uiState.isRecording) RoseError else Slate100
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             if (uiState.isRecording) {
                                 val minutes = uiState.recordingDurationSec / 60
                                 val seconds = uiState.recordingDurationSec % 60
@@ -90,16 +92,19 @@ fun LogsTab(
                                 containerColor = if (uiState.isRecording) RoseError else CyanAccent,
                                 contentColor = Slate900
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Icon(
                                 imageVector = if (uiState.isRecording) Icons.Default.Stop else Icons.Default.PlayArrow,
-                                contentDescription = "Toggle Record"
+                                contentDescription = "Toggle Record",
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = if (uiState.isRecording) "Stop" else "Record CSV",
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
                             )
                         }
                     }

@@ -39,12 +39,12 @@ fun CompassDial(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
-                modifier = Modifier.size(130.dp),
+                modifier = Modifier.size(115.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -60,7 +60,7 @@ fun CompassDial(
 
                     for (deg in 0 until 360 step 30) {
                         val isCardinal = deg % 90 == 0
-                        val tickLength = if (isCardinal) 12f else 6f
+                        val tickLength = if (isCardinal) 10f else 5f
                         val tickColor = if (isCardinal) CyanAccent else Slate500
 
                         rotate(deg.toFloat(), center) {
@@ -75,36 +75,36 @@ fun CompassDial(
 
                     rotate(-animatedAzimuth, center) {
                         val northPath = Path().apply {
-                            moveTo(center.x, center.y - radius + 14f)
-                            lineTo(center.x - 7f, center.y)
-                            lineTo(center.x + 7f, center.y)
+                            moveTo(center.x, center.y - radius + 12f)
+                            lineTo(center.x - 6f, center.y)
+                            lineTo(center.x + 6f, center.y)
                             close()
                         }
                         drawPath(northPath, color = RoseError)
 
                         val southPath = Path().apply {
-                            moveTo(center.x, center.y + radius - 14f)
-                            lineTo(center.x - 7f, center.y)
-                            lineTo(center.x + 7f, center.y)
+                            moveTo(center.x, center.y + radius - 12f)
+                            lineTo(center.x - 6f, center.y)
+                            lineTo(center.x + 6f, center.y)
                             close()
                         }
                         drawPath(southPath, color = Slate400)
 
-                        drawCircle(color = Slate900, radius = 5f, center = center)
-                        drawCircle(color = CyanAccent, radius = 2.5f, center = center)
+                        drawCircle(color = Slate900, radius = 4.5f, center = center)
+                        drawCircle(color = CyanAccent, radius = 2f, center = center)
                     }
                 }
 
                 Text(
                     text = "N",
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = RoseError,
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 2.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -114,22 +114,27 @@ fun CompassDial(
                     color = Slate100
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = String.format("%.1f°", azimuthDegrees),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = CyanAccent
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = String.format("%.1f°", azimuthDegrees),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = CyanAccent
+                )
+
+                Surface(
+                    color = CoralOrange.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
                     Text(
                         text = getCardinalDirection(azimuthDegrees),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = CoralOrange
+                        color = CoralOrange,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
 
@@ -137,7 +142,8 @@ fun CompassDial(
                 Text(
                     text = "6-DOF IMU Fused Orientation",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Slate400
+                    color = Slate400,
+                    fontSize = 11.sp
                 )
             }
         }

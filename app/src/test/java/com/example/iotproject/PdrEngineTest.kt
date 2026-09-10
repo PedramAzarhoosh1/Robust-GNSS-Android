@@ -33,20 +33,61 @@ class PdrEngineTest {
         }
 
         // Baseline
-        detector.processSensorSample(Vector3D(0f, 9.81f, 0f), 1000L)
+        detector.processSensorSample(
+            accel = Vector3D(0f, 9.81f, 0f),
+            dynamicAccelMag = 0.5f,
+            isDeviceStationary = false,
+            timestampMs = 1000L
+        )
 
-        for (i in 0 until 3) {
+        for (i in 0 until 5) {
             val t = 1000L + (i + 1) * 600L
 
             // Peak
-            detector.processSensorSample(Vector3D(0f, 13.0f, 1f), t)
+            detector.processSensorSample(
+                accel = Vector3D(0f, 13.0f, 1f),
+                dynamicAccelMag = 3.5f,
+                isDeviceStationary = false,
+                timestampMs = t
+            )
             // Valley
-            detector.processSensorSample(Vector3D(0f, 8.0f, 1f), t + 200L)
+            detector.processSensorSample(
+                accel = Vector3D(0f, 7.5f, 1f),
+                dynamicAccelMag = 2.5f,
+                isDeviceStationary = false,
+                timestampMs = t + 200L
+            )
             // Rise across baseline
-            detector.processSensorSample(Vector3D(0f, 11.0f, 1f), t + 300L)
+            detector.processSensorSample(
+                accel = Vector3D(0f, 11.5f, 1f),
+                dynamicAccelMag = 2.0f,
+                isDeviceStationary = false,
+                timestampMs = t + 300L
+            )
         }
 
-        assertTrue("Expected at least 1 step detected from waveform, got $stepCount", stepCount >= 1)
+        assertTrue("Expected at least 1 step detected from walking waveform, got $stepCount", stepCount >= 1)
+    }
+
+    @Test
+    fun testStationaryZeroVelocityUpdateDoesNotTriggerSteps() {
+        var stepCount = 0
+        val detector = StepDetector {
+            stepCount++
+        }
+
+        // Simulate stationary phone with micro-tremors (noise)
+        for (i in 0 until 10) {
+            val t = 1000L + i * 200L
+            detector.processSensorSample(
+                accel = Vector3D(0.1f, 9.85f, 0.1f),
+                dynamicAccelMag = 0.1f,
+                isDeviceStationary = true,
+                timestampMs = t
+            )
+        }
+
+        assertEquals("Stationary device must register exactly 0 steps", 0, stepCount)
     }
 
     @Test
@@ -70,7 +111,10 @@ class PdrEngineTest {
         pdrEngine.syncWithValidGnss(initialGps)
 
         val sensorNorth = SensorSnapshot(
-            rotation = RotationVectorData(azimuthDegrees = 0f, timestampNanos = 1000L)
+            rotation = RotationVectorData(azimuthDegrees = 0f, timestampNanos = 1000L),
+            isDeviceStationary = false,
+            dynamicAccelMagnitude = 2.5f,
+            linearAcceleration = Vector3D(0f, 2.5f, 0f)
         )
 
         // Baseline
@@ -89,12 +133,12 @@ class PdrEngineTest {
             // Trough
             pdrEngine.processSensorSnapshot(sensorNorth.copy(
                 timestampMs = t + 200L,
-                accelerometer = Vector3D(0f, 8.0f, 1f)
+                accelerometer = Vector3D(0f, 7.5f, 1f)
             ))
             // Rise
             pdrEngine.processSensorSnapshot(sensorNorth.copy(
                 timestampMs = t + 300L,
-                accelerometer = Vector3D(0f, 11.0f, 1f)
+                accelerometer = Vector3D(0f, 11.5f, 1f)
             ))
         }
 

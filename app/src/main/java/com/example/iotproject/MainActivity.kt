@@ -9,9 +9,13 @@ import com.example.iotproject.ui.screens.MainAppScaffold
 import com.example.iotproject.ui.theme.IOTProjectTheme
 import com.example.iotproject.ui.viewmodel.MainViewModel
 
+import org.osmdroid.config.Configuration
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Configuration.getInstance().load(this, getSharedPreferences("osmdroid_pref", MODE_PRIVATE))
+        Configuration.getInstance().userAgentValue = "IOTProject/1.0 (Android; Resilient Positioning System)"
         enableEdgeToEdge()
         setContent {
             IOTProjectTheme {

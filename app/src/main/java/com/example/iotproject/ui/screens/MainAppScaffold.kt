@@ -120,9 +120,10 @@ fun MainAppScaffold(viewModel: MainViewModel) {
             ) {
                 val navItems = listOf(
                     NavItem("Dashboard", Icons.Default.Navigation, 0),
-                    NavItem("PDR & IMU", Icons.Default.DirectionsWalk, 1),
-                    NavItem("Satellites", Icons.Default.Language, 2),
-                    NavItem("Datasets", Icons.Default.Folder, 3)
+                    NavItem("Live Map", Icons.Default.Map, 1),
+                    NavItem("PDR & IMU", Icons.Default.DirectionsWalk, 2),
+                    NavItem("Satellites", Icons.Default.Language, 3),
+                    NavItem("Datasets", Icons.Default.Folder, 4)
                 )
 
                 navItems.forEach { item ->
@@ -142,7 +143,7 @@ fun MainAppScaffold(viewModel: MainViewModel) {
                                 text = item.title,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (selected) CyanAccent else Slate400,
-                                fontSize = 11.sp
+                                fontSize = 10.sp
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -163,9 +164,10 @@ fun MainAppScaffold(viewModel: MainViewModel) {
         ) { tabIndex ->
             when (tabIndex) {
                 0 -> DashboardTab(uiState = uiState, viewModel = viewModel)
-                1 -> SensorsTab(sensors = uiState.sensors, pdrState = uiState.pdrState)
-                2 -> SatellitesTab(summary = uiState.gnssSummary)
-                3 -> LogsTab(uiState = uiState, viewModel = viewModel)
+                1 -> MapTab(uiState = uiState, viewModel = viewModel)
+                2 -> SensorsTab(sensors = uiState.sensors, pdrState = uiState.pdrState)
+                3 -> SatellitesTab(summary = uiState.gnssSummary)
+                4 -> LogsTab(uiState = uiState, viewModel = viewModel)
                 else -> DashboardTab(uiState = uiState, viewModel = viewModel)
             }
         }
