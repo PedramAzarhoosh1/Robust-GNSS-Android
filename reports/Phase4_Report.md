@@ -140,7 +140,7 @@ The application provides real-time telemetry across 5 dedicated functional scree
 | ![Live Map OSM HOT](../images/Screenshot_20260913_113617_IOTProject.jpg) | ![PDR Compass & Sensors](../images/Screenshot_20260913_113626_IOTProject.jpg) |
 
 ### 5.3. Satellite Constellations & CSV Datasets
-| Low-Signal Constellation Tracking | Multi-Constellation Signal Bars (/N_0$) | CSV Datasets & File Sharing |
+| Low-Signal Constellation Tracking | Multi-Constellation Signal Bars ($C/N_0$) | CSV Datasets & File Sharing |
 | :---: | :---: | :---: |
 | ![Degraded Satellite Tracking](../images/Screenshot_20260913_113632_IOTProject.jpg) | ![Satellites Signal Bars](../images/Screenshot_20260913_113638_IOTProject.jpg) | ![Dataset Logger](../images/Screenshot_20260913_113644_IOTProject.jpg) |
 

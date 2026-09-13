@@ -3,6 +3,7 @@ package com.example.iotproject.ui.screens.tabs
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -48,48 +50,155 @@ fun MapTab(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Ultra-Compact Floating 4-Scenario Segmented Bar (1-Tap Instant Switching, Max Map Visibility)
-        Surface(
+        // 2. Centered Floating Scenario Dropdown Pill (Ultra-clean, compact, no conflict with right-side controls)
+        Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 10.dp),
-            color = Slate900.copy(alpha = 0.92f),
-            shape = RoundedCornerShape(22.dp),
-            border = BorderStroke(1.dp, Slate700.copy(alpha = 0.6f)),
-            shadowElevation = 6.dp
+                .padding(top = 10.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { scenarioDropdownOpen = true },
+                color = Slate900.copy(alpha = 0.94f),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, Slate700.copy(alpha = 0.8f)),
+                shadowElevation = 8.dp
             ) {
-                ScenarioSegmentChip(
-                    label = "Normal",
-                    icon = Icons.Default.GpsFixed,
-                    isActive = uiState.faultMode == FaultInjectionMode.NORMAL,
-                    activeColor = CyanAccent,
-                    onClick = { viewModel.setFaultMode(FaultInjectionMode.NORMAL) }
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val activeColor = when (uiState.faultMode) {
+                        FaultInjectionMode.NORMAL -> EmeraldGreen
+                        FaultInjectionMode.OUTAGE -> RoseError
+                        FaultInjectionMode.POSITION_JUMP -> CoralOrange
+                        FaultInjectionMode.RECOVERY -> EmeraldGreen
+                        FaultInjectionMode.FROZEN_LOCATION -> RoseError
+                        FaultInjectionMode.GRADUAL_DRIFT, FaultInjectionMode.DELAYED_UPDATES -> AmberWarning
+                    }
+                    val labelText = when (uiState.faultMode) {
+                        FaultInjectionMode.NORMAL -> "Scenario: Normal (No Fault)"
+                        FaultInjectionMode.OUTAGE -> "Scenario: Tunnel / Outage"
+                        FaultInjectionMode.POSITION_JUMP -> "Scenario: Position Jump (+80m)"
+                        FaultInjectionMode.RECOVERY -> "Scenario: Smooth Recovery"
+                        FaultInjectionMode.FROZEN_LOCATION -> "Scenario: Frozen Position"
+                        FaultInjectionMode.GRADUAL_DRIFT -> "Scenario: Gradual Drift (+1.5m/s)"
+                        FaultInjectionMode.DELAYED_UPDATES -> "Scenario: Delayed Updates (5s)"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(9.dp)
+                            .clip(CircleShape)
+                            .background(activeColor)
+                    )
+                    Text(
+                        text = labelText,
+                        color = Color.White,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Select Scenario",
+                        tint = Slate400,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = scenarioDropdownOpen,
+                onDismissRequest = { scenarioDropdownOpen = false },
+                modifier = Modifier
+                    .background(Slate900)
+                    .border(BorderStroke(1.dp, Slate700), RoundedCornerShape(12.dp))
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(EmeraldGreen))
+                            Text("Normal (No Fault)", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.NORMAL)
+                        scenarioDropdownOpen = false
+                    }
                 )
-                ScenarioSegmentChip(
-                    label = "Tunnel",
-                    icon = Icons.Default.GpsOff,
-                    isActive = uiState.faultMode == FaultInjectionMode.OUTAGE,
-                    activeColor = RoseError,
-                    onClick = { viewModel.setFaultMode(FaultInjectionMode.OUTAGE) }
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(RoseError))
+                            Text("Tunnel / GNSS Outage", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.OUTAGE)
+                        scenarioDropdownOpen = false
+                    }
                 )
-                ScenarioSegmentChip(
-                    label = "Spoofing",
-                    icon = Icons.Default.Warning,
-                    isActive = uiState.faultMode == FaultInjectionMode.POSITION_JUMP,
-                    activeColor = CoralOrange,
-                    onClick = { viewModel.setFaultMode(FaultInjectionMode.POSITION_JUMP) }
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(CoralOrange))
+                            Text("Position Jump / Spoofing (+80m)", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.POSITION_JUMP)
+                        scenarioDropdownOpen = false
+                    }
                 )
-                ScenarioSegmentChip(
-                    label = "Recovery",
-                    icon = Icons.Default.Autorenew,
-                    isActive = uiState.faultMode == FaultInjectionMode.RECOVERY,
-                    activeColor = EmeraldGreen,
-                    onClick = { viewModel.setFaultMode(FaultInjectionMode.RECOVERY) }
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(EmeraldGreen))
+                            Text("Smooth Recovery (4-Fix Holdoff)", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.RECOVERY)
+                        scenarioDropdownOpen = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(RoseError))
+                            Text("Frozen Location (Stall)", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.FROZEN_LOCATION)
+                        scenarioDropdownOpen = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(AmberWarning))
+                            Text("Gradual Drift (+1.5 m/s ramp)", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.GRADUAL_DRIFT)
+                        scenarioDropdownOpen = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(AmberWarning))
+                            Text("Delayed Updates (5s Stale)", color = Slate100, fontSize = 13.sp)
+                        }
+                    },
+                    onClick = {
+                        viewModel.setFaultMode(FaultInjectionMode.DELAYED_UPDATES)
+                        scenarioDropdownOpen = false
+                    }
                 )
             }
         }
@@ -309,42 +418,6 @@ fun MapTab(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ScenarioSegmentChip(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    isActive: Boolean,
-    activeColor: androidx.compose.ui.graphics.Color,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
-        color = if (isActive) activeColor else androidx.compose.ui.graphics.Color.Transparent,
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = if (isActive) Slate900 else Slate400,
-                modifier = Modifier.size(13.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = label,
-                color = if (isActive) Slate900 else Slate300,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 11.sp
-            )
         }
     }
 }
