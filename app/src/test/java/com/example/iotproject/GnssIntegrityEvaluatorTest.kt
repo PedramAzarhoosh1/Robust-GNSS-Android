@@ -3,6 +3,7 @@ package com.example.iotproject
 import com.example.iotproject.data.model.GnssConstellationSummary
 import com.example.iotproject.data.model.GnssStatusState
 import com.example.iotproject.data.model.LocationData
+import com.example.iotproject.data.model.MotionContext
 import com.example.iotproject.data.model.SensorSnapshot
 import com.example.iotproject.data.model.Vector3D
 import com.example.iotproject.domain.assessment.GnssIntegrityEvaluator
@@ -21,7 +22,7 @@ class GnssIntegrityEvaluatorTest {
     }
 
     @Test
-    fun testNullLocationReturnsUnavailable() {
+    fun testNullLocationReturnsUnavailableWithZeroTrust() {
         val result = evaluator.evaluate(
             currentLocation = null,
             sensorSnapshot = SensorSnapshot(),
@@ -30,10 +31,11 @@ class GnssIntegrityEvaluatorTest {
         )
 
         assertEquals(GnssStatusState.UNAVAILABLE, result.state)
+        assertEquals(0.0f, result.gpsTrustScore, 0.001f)
     }
 
     @Test
-    fun testNominalGpsReturnsHealthy() {
+    fun testNominalGpsReturnsHealthyAndHighTrust() {
         val now = 10000L
         val loc = LocationData(
             latitude = 35.6892,
@@ -56,12 +58,15 @@ class GnssIntegrityEvaluatorTest {
             usedInFixCount = 12,
             gpsCount = 6,
             glonassCount = 4,
-            galileoCount = 2
+            galileoCount = 2,
+            avgCn0 = 36.0f
         )
 
         val result = evaluator.evaluate(loc, sensorSnapshot, gnssSummary, currentTimeMs = now)
 
         assertEquals(GnssStatusState.HEALTHY, result.state)
+        assertTrue("Expected trust score >= 0.85, got ${result.gpsTrustScore}", result.gpsTrustScore >= 0.85f)
+        assertEquals(MotionContext.PEDESTRIAN_WALK, result.motionContext)
     }
 
     @Test
@@ -82,7 +87,7 @@ class GnssIntegrityEvaluatorTest {
 
         val result = evaluator.evaluate(
             loc,
-            SensorSnapshot(isDeviceStationary = false),
+            SensorSnapshot(isDeviceStationary = false, dynamicAccelMagnitude = 1.0f),
             GnssConstellationSummary(usedInFixCount = 6),
             currentTimeMs = now
         )
@@ -106,7 +111,7 @@ class GnssIntegrityEvaluatorTest {
             provider = "gps",
             satellitesUsedInFix = 8
         )
-        // Sensor says phone is lying stationary on the table
+        // Sensor says phone is stationary on a desk
         val sensorSnapshot = SensorSnapshot(
             isDeviceStationary = true,
             dynamicAccelMagnitude = 0.02f,
@@ -122,6 +127,33 @@ class GnssIntegrityEvaluatorTest {
 
         assertEquals(GnssStatusState.SUSPICIOUS, result.state)
         assertTrue(result.isKinematicInconsistent)
+        assertTrue(result.gpsTrustScore < 0.20f)
+    }
+
+    @Test
+    fun testVehicleMotionContextRecognized() {
+        val now = 10000L
+        val carLoc = LocationData(
+            latitude = 35.6892,
+            longitude = 51.3890,
+            altitude = 1200.0,
+            accuracy = 4.0f,
+            speed = 15.0f, // ~54 km/h driving
+            bearing = 90f,
+            timestamp = now,
+            elapsedRealtimeNanos = 10_000_000_000L,
+            provider = "gps",
+            satellitesUsedInFix = 10
+        )
+        val carSensor = SensorSnapshot(
+            isDeviceStationary = false,
+            dynamicAccelMagnitude = 0.4f // low vertical bounce inside car
+        )
+
+        val result = evaluator.evaluate(carLoc, carSensor, GnssConstellationSummary(usedInFixCount = 10), now)
+
+        assertEquals(MotionContext.VEHICLE_TRANSIT, result.motionContext)
+        assertEquals(GnssStatusState.HEALTHY, result.state)
     }
 
     @Test
@@ -138,7 +170,7 @@ class GnssIntegrityEvaluatorTest {
             elapsedRealtimeNanos = 10_000_000_000L,
             provider = "gps"
         )
-        evaluator.evaluate(loc1, SensorSnapshot(), GnssConstellationSummary(usedInFixCount = 8), t1)
+        evaluator.evaluate(loc1, SensorSnapshot(dynamicAccelMagnitude = 0.8f), GnssConstellationSummary(usedInFixCount = 8), t1)
 
         // 1 second later, position teleports ~300 meters away
         val t2 = 11000L
@@ -154,7 +186,7 @@ class GnssIntegrityEvaluatorTest {
             provider = "gps"
         )
 
-        val result2 = evaluator.evaluate(loc2, SensorSnapshot(), GnssConstellationSummary(usedInFixCount = 8), t2)
+        val result2 = evaluator.evaluate(loc2, SensorSnapshot(dynamicAccelMagnitude = 0.8f), GnssConstellationSummary(usedInFixCount = 8), t2)
 
         assertEquals(GnssStatusState.SUSPICIOUS, result2.state)
         assertTrue(result2.isJumpDetected)
@@ -181,5 +213,6 @@ class GnssIntegrityEvaluatorTest {
 
         assertEquals(GnssStatusState.UNAVAILABLE, result.state)
         assertTrue(result.isTimeout)
+        assertEquals(0.0f, result.gpsTrustScore, 0.001f)
     }
 }

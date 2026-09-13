@@ -2,9 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Network permissions for Map Tiles -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Location Permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Mock Location Provider Permission -->
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" tools:ignore="MockLocation,ProtectedPermissions" />
 
     <!-- Sensor & Activity Recognition Permissions -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
@@ -24,7 +31,13 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.IOTProject">
+
+        <!-- Neshan Native Map SDK API Key -->
+        <meta-data
+            android:name="org.maplibre.android.API_KEY"
+            android:value="mobile.42120a4e4fa44d96ab13515d8e8e886b" />
 
         <activity
             android:name=".MainActivity"
