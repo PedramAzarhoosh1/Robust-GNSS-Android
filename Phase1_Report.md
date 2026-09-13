@@ -1,4 +1,3 @@
-```markdown
 # Phase 1 Report: Design of an Intelligent GNSS Integrity Evaluation and Kinematic Data Logging System
 
 ---
@@ -145,7 +144,3 @@ The application dashboard consists of the following sections:
 ## 5. Conclusion and Readiness for Phase 2
 
 All objectives and requirements specified for Phase 1 have been successfully implemented, tested, and documented. This stable infrastructure allows direct entry into **Phase 2** (designing the Fault Injection simulation module and implementing motion sensor-based position estimation algorithms such as PDR and Kalman Filters).
-
-```
-
-```

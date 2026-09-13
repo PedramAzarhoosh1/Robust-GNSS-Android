@@ -104,8 +104,13 @@ class GnssIntegrityEvaluator {
         var isSpeedAnomalous = false
 
         val prevLoc = if (locationHistoryWindow.size >= 2) locationHistoryWindow[locationHistoryWindow.size - 2] else null
-        if (prevLoc != null && currentLocation.elapsedRealtimeNanos > previousTimestampNanos) {
-            val dtSeconds = (currentLocation.elapsedRealtimeNanos - previousTimestampNanos) / 1_000_000_000.0
+        if (prevLoc != null) {
+            val dtNanos = currentLocation.elapsedRealtimeNanos - prevLoc.elapsedRealtimeNanos
+            val dtSeconds = if (dtNanos > 0) {
+                dtNanos / 1_000_000_000.0
+            } else {
+                (currentLocation.timestamp - prevLoc.timestamp) / 1000.0
+            }
             if (dtSeconds > 0.05) {
                 jumpDistanceMeters = computeDistanceMeters(
                     prevLoc.latitude, prevLoc.longitude,
@@ -116,7 +121,7 @@ class GnssIntegrityEvaluator {
                 // Check coordinate teleportation / sudden jumps
                 if (jumpDistanceMeters > 35f && derivedSpeed > MAX_PLAUSIBLE_SPEED_MPS) {
                     isJumpDetected = true
-                    reasons.add("Sudden position jump detected: ${String.format("%.1f", jumpDistanceMeters)}m in ${String.format("%.1f", dtSeconds)}s.")
+                    reasons.add("Sudden position jump detected: ${String.format(java.util.Locale.US, "%.1f", jumpDistanceMeters)}m in ${String.format(java.util.Locale.US, "%.1f", dtSeconds)}s.")
                 }
             }
         }
