@@ -311,7 +311,7 @@ cd "C:\Users\pedra\StudioProjects\Robust-GNSS-Android_4"
 .\gradlew.bat installDebug
 ```
 The compiled APK will be located at:
-`app/build/outputs/apk/debug/app-debug.apk`
+`app/build/outputs/apk/debug/Robust-GNSS.apk`
 
 ---
 

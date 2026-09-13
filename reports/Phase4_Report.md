@@ -170,7 +170,7 @@ All mathematical models and domain logic were verified with standalone JVM unit 
 | Item Required by Project Specification | Deliverable Artifact / Code Reference | Status |
 | :--- | :--- | :---: |
 | **Complete Android Source Code** | pp/src/main/java/com/example/iotproject/ | ✅ Complete |
-| **Installable APK File** | pp/build/outputs/apk/debug/app-debug.apk | ✅ Generated |
+| **Installable APK File** | `app/build/outputs/apk/debug/Robust-GNSS.apk` | ✅ Generated |
 | **Recorded Real-World Datasets** | sampleLog/gnss_pdr_log_20260913_113447.csv | ✅ Logged |
 | **GNSS Integrity Evaluation Module** | [GnssIntegrityEvaluator.kt](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/domain/assessment/GnssIntegrityEvaluator.kt) | ✅ Verified |
 | **Position Estimation & Fusion Engine** | [PositionEstimator.kt](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/domain/fusion/PositionEstimator.kt), [PdrEngine.kt](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/domain/pdr/PdrEngine.kt) | ✅ Verified |

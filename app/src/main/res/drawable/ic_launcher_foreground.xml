@@ -1,30 +1,120 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- Satellite Orbit Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#0284C7"
+        android:strokeWidth="1.8"
+        android:strokeAlpha="0.7"
+        android:pathData="M 28,68 A 38,20 35 1 1 82,40 A 38,20 35 1 1 28,68" />
+
+    <!-- GNSS Broadcast Signal Waves (Radiating from Top-Right Satellite) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M 62,39 A 14,14 0 0 0 71,48" />
+
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#14B8A6"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M 57,44 A 22,22 0 0 0 71,58" />
+
+    <!-- Satellite Body & Solar Panels (Top-Right) -->
+    <!-- Solar Wing Left -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 68,26 L 73,23 L 71,20 L 66,23 Z" />
+    <path
+        android:fillColor="#D97706"
+        android:strokeColor="#B45309"
+        android:strokeWidth="0.4"
+        android:pathData="M 68.5,25.5 L 72.5,23 M 67,24 L 71,21.5" />
+
+    <!-- Solar Wing Right -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 77,33 L 82,30 L 80,27 L 75,30 Z" />
+    <path
+        android:fillColor="#D97706"
+        android:strokeColor="#B45309"
+        android:strokeWidth="0.4"
+        android:pathData="M 77.5,32.5 L 81.5,30 M 76,31 L 80,28.5" />
+
+    <!-- Center Satellite Bus Core -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="0.8"
+        android:pathData="M 71,28 L 76,25 L 74,22 L 69,25 Z" />
+
+    <!-- Satellite Antenna Beacon -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 71,28 L 68,32"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
+
+    <!-- Central Resilient Navigation Compass Star / Gyro Arrow -->
+    <!-- North Arrow (Brilliant Cyan & White) -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:pathData="M 54,30 L 54,54 L 46,54 Z" />
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M 54,30 L 62,54 L 54,54 Z" />
+
+    <!-- South Arrow (Steel Blue) -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M 54,78 L 46,54 L 54,54 Z" />
+    <path
+        android:fillColor="#0369A1"
+        android:pathData="M 54,78 L 54,54 L 62,54 Z" />
+
+    <!-- East Arrow (Light Teal) -->
+    <path
+        android:fillColor="#14B8A6"
+        android:pathData="M 78,54 L 54,46 L 54,54 Z" />
+    <path
+        android:fillColor="#0D9488"
+        android:pathData="M 78,54 L 54,54 L 54,62 Z" />
+
+    <!-- West Arrow (Dark Cyan) -->
+    <path
+        android:fillColor="#0891B2"
+        android:pathData="M 30,54 L 54,54 L 54,46 Z" />
+    <path
+        android:fillColor="#0E7490"
+        android:pathData="M 30,54 L 54,62 L 54,54 Z" />
+
+    <!-- Central Precision Core Ring -->
+    <path
+        android:fillColor="#0B132B"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.8"
+        android:pathData="M 54,50 A 4,4 0 1 0 54,58 A 4,4 0 1 0 54,50" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 54,52.2 A 1.8,1.8 0 1 0 54,55.8 A 1.8,1.8 0 1 0 54,52.2" />
+
+    <!-- PDR Dead Reckoning Footstep Trajectory Nodes (Bottom Trail) -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 40,84 A 2.2,2.2 0 1 0 40,88.4 A 2.2,2.2 0 1 0 40,84" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 48,80 A 2.0,2.0 0 1 0 48,84 A 2.0,2.0 0 1 0 48,80" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M 54,76 A 1.6,1.6 0 1 0 54,79.2 A 1.6,1.6 0 1 0 54,76" />
 </vector>
