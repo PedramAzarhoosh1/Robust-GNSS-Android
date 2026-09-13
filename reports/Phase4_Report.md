@@ -124,44 +124,36 @@ To evaluate stationary stability, the phone was placed on a flat surface and sub
 
 ---
 
-## 5. Visual Telemetry and UI Verification
+### 5.1. Dashboard Overview & Real-Time Estimation Error
+| 2D Vector Canvas & Scenarios | Stride Metrics & Estimation Error | GNSS Integrity Diagnosis |
+| :---: | :---: | :---: |
+| ![Dashboard Overview](../images/Screenshot_20260913_113519_IOTProject.jpg) | ![PDR Metrics](../images/Screenshot_20260913_113528_IOTProject.jpg) | ![Integrity Diagnosis](../images/Screenshot_20260913_113533_IOTProject.jpg) |
 
-The visual telemetry interfaces were verified across all tabs during physical device trials:
+### 5.2. Live Street Map Navigation & Persian Typography
+| CartoDB High-DPI Street Map | OSM Humanitarian (HOT) Persian Labels |
+| :---: | :---: |
+| ![Live Map CartoDB](../images/Screenshot_20260913_113603_IOTProject.jpg) | ![Live Map OSM HOT](../images/Screenshot_20260913_113617_IOTProject.jpg) |
 
-```carousel
-![Dashboard Overview - 2D Canvas & Demo Scenarios](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113519_IOTProject.jpg)
-<!-- slide -->
-![PDR Metrics & Real-Time Haversine Error](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113528_IOTProject.jpg)
-<!-- slide -->
-![GNSS Integrity Verdict & Fault Simulation Engine](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113533_IOTProject.jpg)
-<!-- slide -->
-![Live High-DPI Street Map & Mock Location Dock](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113603_IOTProject.jpg)
-<!-- slide -->
-![OSM Humanitarian (HOT) Layer with Persian Typography](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113617_IOTProject.jpg)
-<!-- slide -->
-![6-DOF Compass Dial & IMU Ingestion](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113626_IOTProject.jpg)
-<!-- slide -->
-![Multi-Constellation Satellite Receiver](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113632_IOTProject.jpg)
-<!-- slide -->
-![Active 3D Satellite Fix & Signal Levels](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113638_IOTProject.jpg)
-<!-- slide -->
-![Dataset Session Recorder & File Sharing](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113644_IOTProject.jpg)
-```
+### 5.3. Sensors, Satellites & Datasets
+| 6-DOF Compass & IMU Stream | Multi-Constellation Satellite Bars | CSV Datasets & File Sharing |
+| :---: | :---: | :---: |
+| ![PDR Compass & Sensors](../images/Screenshot_20260913_113626_IOTProject.jpg) | ![Satellites Signal Bars](../images/Screenshot_20260913_113638_IOTProject.jpg) | ![Dataset Logger](../images/Screenshot_20260913_113644_IOTProject.jpg) |
 
-1. **Dashboard Tab** ([Screenshot 1](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113519_IOTProject.jpg), [Screenshot 2](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113528_IOTProject.jpg), [Screenshot 3](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113533_IOTProject.jpg)):
+### 5.4. Interface Section Breakdown:
+1. **Dashboard Tab**:
    - 1-Tap presentation demo bar: `Normal`, `Tunnel`, `Spoofing`, `Recovery`.
    - Real-time 2D Cartesian vector trajectory canvas.
    - Side-by-side numerical coordinates and live Haversine estimation error gauge.
    - Context-aware integrity verdict displaying motion class, trust percentage, and anomaly triggers.
-2. **Live Map Tab** ([Screenshot 4](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113603_IOTProject.jpg), [Screenshot 5](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113617_IOTProject.jpg)):
+2. **Live Map Tab**:
    - High-DPI CartoDB and OSM Humanitarian (HOT) street maps displaying Persian street names and landmark outlines.
-   - Dual-polyline rendering: Teal line for Ground Truth GPS and Coral line for PDR dead reckoning.
+   - Dual-polyline overlays: Teal line for Ground Truth GPS and Coral line for PDR dead reckoning.
    - Collapsible floating dock with system Mock Location toggle and drift telemetry.
-3. **PDR & IMU Tab** ([Screenshot 6](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113626_IOTProject.jpg)):
+3. **PDR & IMU Tab**:
    - 6-DOF fused orientation compass dial with Cardinal/Intercardinal direction headings.
    - Live Weinberg stride length analytics and real-time step cadence.
    - 3-axis IMU streams (accelerometer, gyroscope, magnetometer, dynamic linear acceleration, pitch/roll).
-4. **Satellites Tab** ([Screenshot 7](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113632_IOTProject.jpg), [Screenshot 8](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113638_IOTProject.jpg)):
+4. **Satellites Tab**:
    - Constellation breakdown across GPS, GLONASS, Galileo, and BeiDou.
    - Individual satellite signal strength bars ($C/N_0\text{ dB-Hz}$) with 3D fix checkmarks.
 5. **Datasets Tab** ([Screenshot 9](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/images/Screenshot_20260913_113644_IOTProject.jpg)):
@@ -201,7 +193,7 @@ The automated test suite in `app/src/test/` verifies all algorithmic models inde
 | **Fault Injection Simulation Engine** | [`FaultInjectionEngine.kt`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/domain/fault/FaultInjectionEngine.kt) | ✅ Verified |
 | **Live Street Map & Dual Trajectories** | [`LiveMapView.kt`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/ui/components/LiveMapView.kt), [`MapTab.kt`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/ui/screens/tabs/MapTab.kt) | ✅ Verified |
 | **Android System Mock Location Service** | [`MockLocationManager.kt`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/app/src/main/java/com/example/iotproject/domain/mock/MockLocationManager.kt) | ✅ Verified |
-| **Phase Reports (1, 2, 3, 4)** | [`Phase1_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/Phase1_Report.md), [`Phase2_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/Phase2_Report.md), [`Phase3_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/Phase3_Report.md), [`Phase4_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/Phase4_Report.md) | ✅ Complete |
+| **Phase Reports (1, 2, 3, 4)** | [`Phase1_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/reports/Phase1_Report.md), [`Phase2_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/reports/Phase2_Report.md), [`Phase3_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/reports/Phase3_Report.md), [`Phase4_Report.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/reports/Phase4_Report.md) | ✅ Complete |
 | **Master Documentation & User Manual** | [`README.md`](file:///c:/Users/pedra/StudioProjects/Robust-GNSS-Android_4/README.md) | ✅ Complete |
 
 ---
